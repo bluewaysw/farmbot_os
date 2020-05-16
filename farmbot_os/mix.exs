@@ -1,7 +1,7 @@
 defmodule FarmbotOS.MixProject do
   use Mix.Project
 
-  @all_targets [:rpi3, :rpi]
+  @all_targets [:rpi3, :rpi, :rpi4]
   @version Path.join([__DIR__, "..", "VERSION"])
            |> File.read!()
            |> String.trim()
@@ -126,6 +126,7 @@ defmodule FarmbotOS.MixProject do
       {:busybox, "~> 0.1.4", targets: @all_targets},
       {:farmbot_system_rpi3, "1.10.0-farmbot.1",
        runtime: false, targets: :rpi3},
+      {:nerves_system_rpi4, "1.10.0", runtime: false, targets: :rpi4},
       {:farmbot_system_rpi, "1.10.0-farmbot.2", runtime: false, targets: :rpi}
     ]
   end
