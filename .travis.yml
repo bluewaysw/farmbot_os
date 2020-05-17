@@ -1,0 +1,45 @@
+language: minimal
+os: linux
+arch: amd64
+dist: bionic
+branches: 
+  except:
+    - CI-latest
+script:
+- git submodule update --init --recursive
+- cd farmbot_os
+- sudo apt install -y build-essential automake autoconf git squashfs-tools ssh-askpass pkg-config curl
+- sudo apt install -y libssl-dev libncurses5-dev bc m4 unzip cmake python
+- git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.7.1
+- echo -e '\n. $HOME/.asdf/asdf.sh' >> ~/.bashrc
+- source ~/.bashrc
+- asdf plugin-add erlang
+- asdf plugin-add elixir
+- asdf install erlang 22.3.2
+- asdf install elixir 1.10.2-otp-22
+- asdf global erlang 22.3.2
+- asdf global elixir 1.10.2-otp-22
+- mix local.hex
+- mix local.rebar
+- mix archive.install hex nerves_bootstrap
+- cd farmbot_os
+- MIX_TARGET=rpi4 mix deps.get
+- MIX_TARGET=rpi4 mix firmware
+before_deploy:
+- |
+  if [[ -z "$TRAVIS_TAG" ]]; then
+    export TRAVIS_TAG=CI-latest
+  fi
+deploy:
+- provider: releases
+  api_key:
+    secure: $GITHUB_API_KEY
+  file: 
+  - $TRAVIS_BUILD_DIR/_build.log
+  skip_cleanup: true
+  prerelease: true
+  draft: false
+  overwrite: true
+  on:
+    tags: false
+    branch: master
