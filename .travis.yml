@@ -20,11 +20,11 @@ script:
 - asdf local elixir 1.10.2-otp-22
 - pwd
 - mix --version
-- mix local.hex
-- mix local.rebar
-- mix archive.install hex nerves_bootstrap
+- mix local.hex --force
+- mix local.rebar --force
+- mix archive.install hex nerves_bootstrap --force
 - cd farmbot_os
-- MIX_TARGET=rpi4 mix deps.get
+- MIX_TARGET=rpi4 mix deps.get --force
 - MIX_TARGET=rpi4 mix firmware
 before_deploy:
 - |
