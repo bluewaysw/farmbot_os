@@ -16,8 +16,8 @@ script:
 - asdf plugin-add elixir
 - travis_wait asdf install erlang 22.3.2
 - asdf install elixir 1.10.2-otp-22
-- asdf global erlang 22.3.2
-- asdf global elixir 1.10.2-otp-22
+- asdf local erlang 22.3.2
+- asdf local elixir 1.10.2-otp-22
 - pwd
 - mix --version
 - mix local.hex
