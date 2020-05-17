@@ -48,4 +48,4 @@ deploy:
   overwrite: true
   on:
     tags: false
-    branch: bluewaysw-rpi4
+    branch: feature/bluewaysw-rpi4
