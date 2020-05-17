@@ -28,6 +28,10 @@ script:
 - cd farmbot_os
 - MIX_TARGET=rpi4 mix deps.get --force
 - MIX_TARGET=rpi4 mix firmware
+- mkdir $TRAVIS_BUILD_DIR/_artifacts
+- cp $TRAVIS_BUILD_DIR/farmbot_os/_build/rpi4/rpi4_dev/nerves/images/farmbot.fw $TRAVIS_BUILD_DIR/_artifacts/farmbot-rpi4-dev.fw
+- mv $TRAVIS_BUILD_DIR/farmbot-rpi4-dev.fw /tmp/farmbot-rpi4-dev.fw
+- fwup -a -t complete -i $TRAVIS_BUILD_DIR/_artifacts/farmbot-rpi4-dev.fw -d $TRAVIS_BUILD_DIR/_artifacts/farmbot-rpi4-dev.img
 before_deploy:
 - |
   if [[ -z "$TRAVIS_TAG" ]]; then
@@ -38,7 +42,7 @@ deploy:
   api_key:
     secure: $GITHUB_API_KEY
   file: 
-  - $TRAVIS_BUILD_DIR/_build.log
+  - $TRAVIS_BUILD_DIR/_artifacts/farmbot-rpi4-dev.img
   skip_cleanup: true
   prerelease: true
   draft: false
