@@ -20,7 +20,7 @@ defmodule FarmbotOS.Platform.Target.NervesHubClient do
     1b) if not, goto 2.
   2) check for Farmbot `DeviceCert`.
     2a) if available update tags. goto 3.
-    2b) if not avialable, create. goto 3.
+    2b) if not available, create. goto 3.
   3) Wait for Farmbot API to dispatch nerves_hub `cert` and `key`.
   4) When `cert` and `key` is available, try to connect to `nerves_hub`.
 
@@ -441,7 +441,6 @@ defmodule FarmbotOS.Platform.Target.NervesHubClient do
   end
 
   def handle_cast({:handle_nerves_hub_fwup_message, {:ok, _, _info}}, state) do
-    _ = set_firmware_needs_flash()
     _ = set_ota_progress(100)
     _ = update_device()
     {:noreply, state}
@@ -468,7 +467,6 @@ defmodule FarmbotOS.Platform.Target.NervesHubClient do
         FarmbotCore.Logger.busy(1, "Applying OTA update (2)")
         _ = set_update_available_in_bot_state()
         _ = update_device_last_ota_checkup()
-        _ = set_firmware_needs_flash()
         {:reply, :apply, %{state | is_applying_update: true, firmware_url: url}}
 
       _ ->
@@ -482,7 +480,6 @@ defmodule FarmbotOS.Platform.Target.NervesHubClient do
   def handle_call({:handle_nerves_hub_update_available, _data}, _from, state) do
     _ = set_update_available_in_bot_state()
     _ = update_device_last_ota_checkup()
-    _ = set_firmware_needs_flash()
     FarmbotCore.Logger.busy(1, "Applying OTA update (3)")
     {:reply, :apply, %{state | is_applying_update: true}}
   end
@@ -496,7 +493,6 @@ defmodule FarmbotOS.Platform.Target.NervesHubClient do
       data ->
         _ = set_update_available_in_bot_state()
         _ = update_device_last_ota_checkup()
-        _ = set_firmware_needs_flash()
         FarmbotCore.Logger.busy(1, "Attempting OTA update...")
         # This is where the NervesHub update gets called.
         # Maybe we can check if the BotState has job progress for "FBOS_OTA"
@@ -515,25 +511,8 @@ defmodule FarmbotOS.Platform.Target.NervesHubClient do
       if ota_hour && timezone do
         # check that now.hour == device.ota_hour
         case Timex.Timezone.convert(now, timezone) do
-          %{hour: ^ota_hour} ->
-            FarmbotCore.Logger.debug(
-              3,
-              "current hour: #{ota_hour} (utc=#{now.hour}) == ota_hour #{
-                ota_hour
-              }. auto_update=#{auto_update}"
-            )
-
-            auto_update
-
-          %{hour: now_hour} ->
-            FarmbotCore.Logger.debug(
-              3,
-              "current hour: #{now_hour} (utc=#{now.hour}) != ota_hour: #{
-                ota_hour
-              }. auto_update=#{auto_update}"
-            )
-
-            false
+          %{hour: ^ota_hour} -> auto_update
+          %{hour: _} -> false
         end
       else
         # ota_hour or timezone are nil
@@ -542,7 +521,7 @@ defmodule FarmbotOS.Platform.Target.NervesHubClient do
           "ota_hour = #{ota_hour || "null"} timezone = #{timezone || "null"}"
         )
 
-        true
+        !!auto_update
       end
 
     result && !currently_downloading?()
@@ -657,12 +636,6 @@ defmodule FarmbotOS.Platform.Target.NervesHubClient do
     :ok
   end
 
-  def set_firmware_needs_flash() do
-    # Config.update_config_value(:bool, "settings", "firmware_needs_flash", true)
-    # Config.update_config_value(:bool, "settings", "firmware_needs_open", false)
-    :ok
-  end
-
   def detect_deployment_tags() do
     update_channel = detect_update_channel()
     ["application:#{Project.env()}", "channel:#{update_channel}"]
@@ -688,7 +661,7 @@ defmodule FarmbotOS.Platform.Target.NervesHubClient do
     if currently_downloading?() do
       FarmbotCore.Logger.error(
         1,
-        "Can't perform OTA. OTA alread in progress. Restart device if problem persists."
+        "Can't perform OTA. OTA already in progress. Restart device if problem persists."
       )
     else
       FarmbotCore.Logger.success(1, "OTA started.")

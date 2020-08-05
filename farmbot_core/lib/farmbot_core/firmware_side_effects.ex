@@ -11,7 +11,7 @@ defmodule FarmbotCore.FirmwareSideEffects do
   end
 
   @impl FarmbotFirmware.SideEffects
-  def handle_load(x: x, y: y, z: z) do
+  def handle_load([_u, x, _v, y, _w, z]) do
     :ok = BotState.set_load(x, y, z)
   end
 
@@ -67,11 +67,14 @@ defmodule FarmbotCore.FirmwareSideEffects do
   end
 
   @impl FarmbotFirmware.SideEffects
+  def handle_parameter_calibration_value([{_, 0}]), do: :ok
+  def handle_parameter_calibration_value([{_, 0.0}]), do: :ok
   def handle_parameter_calibration_value([{param, value}]) do
+    FarmbotCeleryScript.SysCalls.sync()
+    Process.sleep(1000)
     %{param => value}
     |> Asset.update_firmware_config!()
     |> Asset.Private.mark_dirty!(%{})
-
     :ok
   end
 

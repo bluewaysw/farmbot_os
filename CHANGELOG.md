@@ -1,10 +1,54 @@
 # Changelog
 
+# 11.0.0
+
+ * Auto sync is now mandatory.
+
+# 10.1.6
+
+ * Add colors and labels to configurator WiFi signal strengths.
+
+# 10.1.5
+
+ * Remove unused variable warning from SSH logs.
+ * Fix bug affecting OTAs of Express devices.
+
+# 10.1.4
+
+ * See changelog for 10.1.5
+
+# 10.1.3
+
+ * Express v1.0 firmware homing updates.
+ * Add warning to configurator credentials page.
+ * Fix bug where configurator would not restart when bad credentials were entered.
+ * Fix missing `firmware_path` bug.
+
+# 10.1.2
+
+ * Express v1.0 firmware updates.
+ * Regimen Farm Event scheduler fixes.
+
+# 10.1.1
+
+ * Changes to TTY to allow use of DIY boards
+ * Upgrade underlying OS for RPi3 Nerves system (`ERL_CRASH_DUMP_SECONDS=-1`)
+
+# 10.1.0
+
+ * Internal upgrades to underlying OS
+ * Bug fix to prevent firmware reset issues when MCU becomes unresponsive
+
+# 10.0.1
+
+ * Fix for Genesis v1.5 firmware bug.
+
 # 10.0.0
 
  * Deprecate `resource_update` RPC
  * Introduce `update_resource` RPC, which allows users to modify variables from the sequence editor.
  * Genesis v1.5 and Express v1.0 firmware updates.
+ * Fix a bug where FBOS would not honor an "AUTO UPDATE" value of "false".
 
 # 9.2.2
 

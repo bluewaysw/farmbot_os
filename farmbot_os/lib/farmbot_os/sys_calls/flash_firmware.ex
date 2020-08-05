@@ -29,11 +29,8 @@ defmodule FarmbotOS.SysCalls.FlashFirmware do
            ),
          :ok <- FarmbotFirmware.close_transport(),
          _ <- FarmbotCore.Logger.debug(3, "starting firmware flash"),
-         _ <- finish_flashing(Avrdude.flash(hex_file, tty, fun)) do
-      %{firmware_path: tty}
-      |> Asset.update_fbos_config!()
-      |> Private.mark_dirty!(%{})
-
+         result <- Avrdude.flash(hex_file, tty, fun) do
+      finish_flashing(result, tty)
       :ok
     else
       {:error, reason} when is_binary(reason) ->
@@ -44,14 +41,18 @@ defmodule FarmbotOS.SysCalls.FlashFirmware do
     end
   end
 
-  def finish_flashing({_result, 0}) do
+  def finish_flashing({_result, 0}, tty) do
     FarmbotCore.Logger.success(
       1,
       "Firmware flashed successfully. Unlock FarmBot to finish initialization."
     )
+
+    %{firmware_path: tty}
+    |> Asset.update_fbos_config!()
+    |> Private.mark_dirty!(%{})
   end
 
-  def finish_flashing(result) do
+  def finish_flashing(result, _) do
     FarmbotCore.Logger.debug(2, "AVR flash returned #{inspect(result)}")
   end
 

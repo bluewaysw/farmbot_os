@@ -1,5 +1,6 @@
 use Mix.Config
-config :logger, level: :warn
+config :logger, level: :debug
+config :logger, :console, level: :warn
 
 # must be lower than other timers
 # To ensure other timers have time to timeout
@@ -28,8 +29,7 @@ if Mix.env() == :test do
     FarmbotCore.StorageSupervisor,
     FarmbotCore.Asset.Supervisor,
     FarmbotCore.BotState.Supervisor,
-    FarmbotCore.Config.Supervisor,
-    FarmbotCore.Logger.Supervisor
+    FarmbotCore.Config.Supervisor
   ]
 
   Enum.map(list, mapper)

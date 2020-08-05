@@ -160,7 +160,7 @@ defmodule FarmbotOS.Platform.Target.Network do
         {VintageNet, ["interface", ifname, "lower_up"], _old, false, _meta},
         state
       ) do
-    FarmbotCore.Logger.error(
+    FarmbotCore.Logger.debug(
       1,
       "Interface #{ifname} disconnected from access point"
     )
@@ -256,12 +256,12 @@ defmodule FarmbotOS.Platform.Target.Network do
         state
       ) do
     FarmbotCore.Logger.error(1, """
-    Farmbot was unable to assosiate with the EAP network.
+    Farmbot was unable to associate with the EAP network.
     Please check the identity, password and method of connection
     """)
 
     FarmbotOS.System.factory_reset("""
-    Farmbot was unable to assosiate with the EAP network.
+    Farmbot was unable to associate with the EAP network.
     Please check the identity, password and method of connection
     """)
 
