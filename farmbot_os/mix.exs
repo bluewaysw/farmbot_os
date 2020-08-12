@@ -134,7 +134,7 @@ defmodule FarmbotOS.MixProject do
        tag: "v1.11.4-farmbot.1",
        runtime: false,
        targets: :rpi},
-      {:farmbot_system_rpi4, github: "bluewaysw/farmbot_system_rpi4", 
+      {:farmbot_system_rpi4, git: "https://github.com/bluewaysw/farmbot_system_rpi4.git", 
       tag: "v1.11.3-farmbot.0", runtime: false, targets: :rpi4}
     ]
   end
