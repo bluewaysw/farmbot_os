@@ -17,9 +17,9 @@ script:
 - asdf plugin-add erlang
 - asdf plugin-add elixir
 - travis_wait asdf install erlang 23.1.1
-- asdf install elixir 1.11.2-otp-23
+- asdf install elixir 1.10.4-otp-23
 - asdf local erlang 23.1.1
-- asdf local elixir 1.11.2-otp-23
+- asdf local elixir 1.10.4-otp-23
 - pwd
 - mix --version
 - mix local.hex --force
