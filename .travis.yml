@@ -16,10 +16,10 @@ script:
 - source ~/.bashrc
 - asdf plugin-add erlang
 - asdf plugin-add elixir
-- travis_wait asdf install erlang 22.3.2
-- asdf install elixir 1.10.2-otp-22
-- asdf local erlang 22.3.2
-- asdf local elixir 1.10.2-otp-22
+- travis_wait asdf install erlang 23.1.1
+- asdf install elixir 1.11.2-otp-23
+- asdf local erlang 23.1.1
+- asdf local elixir 1.11.2-otp-23
 - pwd
 - mix --version
 - mix local.hex --force
