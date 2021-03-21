@@ -3,33 +3,24 @@ defmodule FarmbotCore.BotState.FileSystem do
   Serializes Farmbot's state into a location on a filesystem.
   """
 
+  require Logger
   use GenServer
   alias FarmbotCore.BotState
 
   @root_dir Application.get_env(:farmbot_core, __MODULE__)[:root_dir]
-  @sleep_time Application.get_env(:farmbot_core, __MODULE__)[:sleep_time]
-  @root_dir ||
-    Mix.raise("""
-    config :farmbot_core, Farmbot.BotState.FileSystem,
-      root_dir: "/tmp/farmbot_state"
-    """)
-
-  @sleep_time ||
-    Mix.raise("""
-    config :farmbot_core, Farmbot.BotState.FileSystem,
-      sleep_time: 200
-    """)
+  @sleep_time 8_000
 
   @type path_and_data :: {Path.t(), binary()}
   @type serialized :: [path_and_data | Path.t()]
 
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args)
+  def start_link(args, opts \\ [name: __MODULE__]) do
+    GenServer.start_link(__MODULE__, args, opts)
   end
+
 
   def init(args) do
     root_dir = Keyword.get(args, :root_dir, @root_dir)
-    sleep_time = Keyword.get(args, :sleep_time, 200)
+    sleep_time = Keyword.get(args, :sleep_time, @sleep_time)
     _ = File.mkdir_p!(root_dir)
 
     bot_state =
@@ -89,7 +80,9 @@ defmodule FarmbotCore.BotState.FileSystem do
         is_atom(value) -> [{Path.join(prefix, to_string(key)), to_string(value)} | acc]
         is_boolean(value) -> [{Path.join(prefix, to_string(key)), to_string(value)} | acc]
         is_nil(value) -> [{Path.join(prefix, to_string(key)), <<0x0>>} | acc]
-        is_list(value) -> raise("Arrays can not be serialized to filesystem nodes")
+        is_list(value) ->
+          Logger.error("Arrays can not be serialized to filesystem nodes")
+          acc
       end
     end)
   end

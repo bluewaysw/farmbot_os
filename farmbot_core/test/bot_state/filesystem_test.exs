@@ -1,14 +1,29 @@
 defmodule FarmbotCore.BotState.FileSystemTest do
   use ExUnit.Case, async: false
   alias FarmbotCore.{BotState, BotState.FileSystem}
+  import ExUnit.CaptureLog
 
   describe "serializer" do
-    test "arrays not aloud" do
-      assert_raise RuntimeError,
-                   "Arrays can not be serialized to filesystem nodes",
-                   fn ->
-                     FileSystem.serialize_state(%{key: [:value, :nope]}, "/")
-                   end
+    test "arrays are ignored" do
+      state = %{
+        key1: "OK",
+        key2: %{also: :ok},
+        key3: [:not, :ok]
+      }
+
+      expected = [
+        {"/tmp/farmbot_tests/key2/also", "ok"},
+        {"/tmp/farmbot_tests/key1", "OK"}
+      ]
+
+      log =
+        capture_log(fn ->
+          actual = FileSystem.serialize_state(state, "/tmp/farmbot_tests")
+          assert actual == expected
+        end)
+
+      expected = "Arrays can not be serialized to filesystem nodes"
+      assert String.contains?(log, expected)
     end
 
     test "serializes a map to the filesystem" do
@@ -61,8 +76,6 @@ defmodule FarmbotCore.BotState.FileSystemTest do
 
   describe "server" do
     test "serializes state to fs" do
-      IO.puts("THIS TEST BLINKS! Fix it.")
-
       root_dir =
         Path.join([
           System.tmp_dir!(),
@@ -71,13 +84,9 @@ defmodule FarmbotCore.BotState.FileSystemTest do
         ])
 
       {:ok, bot_state_pid} = BotState.start_link([], [])
-
-      {:ok, _pid} =
-        FileSystem.start_link(
-          root_dir: root_dir,
-          bot_state: bot_state_pid,
-          sleep_time: 0
-        )
+      args = [root_dir: root_dir, bot_state: bot_state_pid, sleep_time: 0]
+      {:ok, pid} = FileSystem.start_link(args, [])
+      send(pid, :timeout)
 
       _ = BotState.subscribe(bot_state_pid)
       :ok = BotState.set_pin_value(bot_state_pid, 1, 1)
@@ -88,6 +97,7 @@ defmodule FarmbotCore.BotState.FileSystemTest do
       # default value
       assert File.read!(Path.join(pins_dir, "mode")) == "-1"
       assert File.read!(Path.join(pins_dir, "value")) == "1"
+      Process.exit(pid, :normal)
     end
   end
 end

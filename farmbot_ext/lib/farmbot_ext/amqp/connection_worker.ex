@@ -9,7 +9,12 @@ defmodule FarmbotExt.AMQP.ConnectionWorker do
   require FarmbotTelemetry
   alias AMQP.{Basic, Channel, Queue}
 
-  alias FarmbotExt.{JWT, AMQP.ConnectionWorker}
+  alias FarmbotExt.{
+    JWT,
+    AMQP.ConnectionWorker,
+    AMQP.Support
+  }
+
   alias FarmbotCore.{Project, JSON}
 
   @exchange "amq.topic"
@@ -47,9 +52,7 @@ defmodule FarmbotExt.AMQP.ConnectionWorker do
   end
 
   defp maybe_connect(chan_name, route, auto_delete, purge?) do
-    with %{} = conn <- FarmbotExt.AMQP.ConnectionWorker.connection(),
-         {:ok, chan} <- Channel.open(conn),
-         :ok <- Basic.qos(chan, global: true),
+    with {:ok, {conn, chan}} <- Support.create_channel(),
          {:ok, _} <- Queue.declare(chan, chan_name, auto_delete: auto_delete),
          {:ok, _} <- maybe_purge(chan, chan_name, purge?),
          :ok <- Queue.bind(chan, chan_name, @exchange, routing_key: route),
@@ -58,8 +61,6 @@ defmodule FarmbotExt.AMQP.ConnectionWorker do
       # AMQP lib doesn't handle being disconnected form the
       # network very well and these pids will turn into zombies
       Process.link(conn.pid)
-      Process.link(chan.pid)
-      FarmbotTelemetry.event(:amqp, :channel_open)
       FarmbotTelemetry.event(:amqp, :queue_bind, nil, queue_name: chan_name, routing_key: route)
 
       %{conn: conn, chan: chan}
@@ -124,7 +125,7 @@ defmodule FarmbotExt.AMQP.ConnectionWorker do
       err ->
         Logger.error("Error Opening AMQP connection: #{inspect(err)}")
         FarmbotTelemetry.event(:amqp, :connection_open_error, nil, error: inspect(err))
-        Process.send_after(self(), :timeout, 5000)
+        FarmbotExt.Time.send_after(self(), :timeout, 5000)
         {:noreply, %{state | conn: nil}}
     end
   end
@@ -148,8 +149,6 @@ defmodule FarmbotExt.AMQP.ConnectionWorker do
     {:stop, :close, reply, %{state | conn: nil}}
   end
 
-  # Public function because the NervesHub channel requires it.
-  # TODO(Connor) - Fix that
   @doc false
   def open_connection(token, email, bot, mqtt_server, vhost) do
     Logger.info("Opening new AMQP connection.")

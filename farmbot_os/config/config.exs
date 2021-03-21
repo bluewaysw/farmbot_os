@@ -27,11 +27,9 @@ config :farmbot_core, FarmbotCore.JSON,
 
 # Customize non-Elixir parts of the firmware.  See
 # https://hexdocs.pm/nerves/advanced-configuration.html for details.
-config :nerves, :firmware,
-  rootfs_overlay: "rootfs_overlay",
-  provisioning: :nerves_hub
+config :nerves, :firmware, rootfs_overlay: "rootfs_overlay"
 
-config :farmbot_core, FarmbotCore.AssetMonitor, checkup_time_ms: 5_000
+config :farmbot_core, FarmbotCore.AssetMonitor, checkup_time_ms: 30_000
 
 config :farmbot_core, FarmbotCore.EctoMigrator,
   default_firmware_io_logs: false,
@@ -49,8 +47,7 @@ config :farmbot_celery_script, FarmbotCeleryScript.SysCalls,
   sys_calls: FarmbotOS.SysCalls
 
 config :farmbot_core, FarmbotCore.BotState.FileSystem,
-  root_dir: "/tmp/farmbot_state",
-  sleep_time: 200
+  root_dir: "/tmp/farmbot_state"
 
 config :farmbot_core, FarmbotCore.FarmwareRuntime,
   runtime_dir: "/tmp/farmware_runtime"
@@ -90,6 +87,20 @@ config :logger,
   ]
 
 import_config("lagger.exs")
+
+rollbar_token = System.get_env("ROLLBAR_TOKEN")
+
+if rollbar_token && Mix.env() != :test do
+  IO.puts("=== ROLLBAR IS ENABLED! ===")
+
+  config :rollbax,
+    access_token: rollbar_token,
+    environment: "production",
+    enable_crash_reports: true,
+    custom: %{fbos_version: Mix.Project.config()[:version]}
+else
+  config :rollbax, enabled: false
+end
 
 if Mix.target() == :host do
   if File.exists?("config/host/#{Mix.env()}.exs") do

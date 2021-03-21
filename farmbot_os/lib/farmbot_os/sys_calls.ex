@@ -66,6 +66,12 @@ defmodule FarmbotOS.SysCalls do
   @impl true
   defdelegate eval_assertion(comment, expression), to: Lua
 
+  @impl true
+  defdelegate raw_lua_eval(expression), to: Lua
+
+  @impl true
+  defdelegate raw_lua_eval(expression, extra_vm_args), to: Lua
+
   defdelegate log_assertion(passed?, type, message), to: Lua
 
   @impl true
@@ -117,6 +123,9 @@ defmodule FarmbotOS.SysCalls do
 
   @impl true
   defdelegate move_absolute(x, y, z, speed), to: Movement
+
+  @impl true
+  defdelegate move_absolute(x, y, z, sx, sy, sz), to: Movement
 
   @impl true
   defdelegate calibrate(axis), to: Movement
@@ -304,5 +313,12 @@ defmodule FarmbotOS.SysCalls do
     w = inspect(where)
     r = inspect(reason)
     {:error, "Firmware error @ #{w}: #{r}"}
+  end
+
+  @impl true
+  def fbos_config() do
+    conf = FarmbotCore.Asset.fbos_config()
+    output = FarmbotCore.Asset.FbosConfig.render(conf)
+    {:ok, output}
   end
 end

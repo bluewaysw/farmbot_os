@@ -4,7 +4,6 @@ defmodule FarmbotExt.Bootstrap do
   a token, secret, or password for logging into an account
   """
 
-  # FarmbotExt.Bootstrap.Authorization.authorize_with_password(email, password, server)
   use GenServer
   require FarmbotCore.Logger
   require Logger
@@ -33,11 +32,11 @@ defmodule FarmbotExt.Bootstrap do
   # state machine implementation
   @doc false
   def try_auth(nil, _server, _password, _secret) do
-    {:noreply, nil, 5000}
+    FarmbotExt.Time.no_reply(nil, 5000)
   end
 
   def try_auth(_email, nil, _password, _secret) do
-    {:noreply, nil, 5000}
+    FarmbotExt.Time.no_reply(nil, 5000)
   end
 
   def try_auth(email, server, nil, secret) when is_binary(secret) do
@@ -48,7 +47,7 @@ defmodule FarmbotExt.Bootstrap do
          {:ok, pid} <- Supervisor.start_child(FarmbotExt, Bootstrap.Supervisor) do
       {:noreply, pid}
     else
-      _ -> {:noreply, nil, 5000}
+      _ -> FarmbotExt.Time.no_reply(nil, 5000)
     end
   end
 
@@ -65,13 +64,24 @@ defmodule FarmbotExt.Bootstrap do
         Logger.error(msg)
         FarmbotCore.Logger.debug(3, msg)
         FarmbotCeleryScript.SysCalls.factory_reset("farmbot_os")
-        {:noreply, nil, 5000}
+        FarmbotExt.Time.no_reply(nil, 5000)
 
       er ->
         msg = "Bootstrap try_auth: #{inspect(er)} "
         Logger.error(msg)
         FarmbotCore.Logger.debug(3, msg)
-        {:noreply, nil, 5000}
+        FarmbotExt.Time.no_reply(nil, 5000)
+    end
+  end
+
+  def reauth do
+    email = get_config_value(:string, "authorization", "email")
+    server = get_config_value(:string, "authorization", "server")
+    secret = get_config_value(:string, "authorization", "secret")
+
+    with {:ok, tkn} <- Authorization.authorize_with_secret(email, secret, server),
+         _ <- update_config_value(:string, "authorization", "token", tkn) do
+      {:ok, tkn}
     end
   end
 end

@@ -4,6 +4,8 @@ defmodule FarmbotOS.Platform.Target.InfoWorker.WifiLevel do
   power levels to the bot_state server
   """
 
+  @report_interval 7_000
+
   use GenServer
   require FarmbotCore.Logger
   alias FarmbotCore.BotState
@@ -20,10 +22,15 @@ defmodule FarmbotOS.Platform.Target.InfoWorker.WifiLevel do
   end
 
   @impl GenServer
+  def handle_info(:timeout, state) do
+    maybe_report_wifi(VintageNet.ioctl("wlan0", :signal_poll))
+    {:noreply, state, @report_interval}
+  end
+
   def handle_info(:load_network_config, state) do
     if FarmbotCore.Config.get_network_config("eth0") do
       FarmbotCore.Logger.warn(3, """
-      FarmBot configured to use ethernet 
+      FarmBot configured to use ethernet
       Disabling WiFi status reporting
       """)
 
@@ -34,7 +41,7 @@ defmodule FarmbotOS.Platform.Target.InfoWorker.WifiLevel do
       case FarmbotCore.Config.get_network_config("wlan0") do
         %{ssid: ssid} ->
           VintageNet.subscribe(["interface", "wlan0"])
-          {:noreply, %{state | ssid: ssid}}
+          {:noreply, %{state | ssid: ssid}, @report_interval}
 
         nil ->
           Process.send_after(self(), :load_network_config, 10_000)
@@ -49,33 +56,18 @@ defmodule FarmbotOS.Platform.Target.InfoWorker.WifiLevel do
         state
       ) do
     FarmbotCore.BotState.set_private_ip(to_string(:inet.ntoa(address)))
-    {:noreply, state}
-  end
-
-  def handle_info(
-        {VintageNet, ["interface", "wlan0", "wifi", "access_points"], _, new,
-         _meta},
-        %{ssid: ssid} = state
-      )
-      when is_binary(ssid) do
-    ap = find_ap(new, ssid)
-
-    if ap do
-      :ok = BotState.report_wifi_level(ap.signal_dbm)
-      :ok = BotState.report_wifi_level_percent(ap.signal_percent)
-    end
-
-    {:noreply, state}
+    {:noreply, state, @report_interval}
   end
 
   def handle_info({VintageNet, _property, _old, _new, _meta}, state) do
-    {:noreply, state}
+    {:noreply, state, @report_interval}
   end
 
-  defp find_ap(new, ssid) do
-    Enum.find_value(new, fn
-      %{ssid: ^ssid} = ap -> ap
-      _ -> false
-    end)
+  def maybe_report_wifi({:ok, signal_info} = result) do
+    :ok = BotState.report_wifi_level(signal_info.signal_dbm)
+    :ok = BotState.report_wifi_level_percent(signal_info.signal_percent)
+    result
   end
+
+  def maybe_report_wifi(other), do: other
 end

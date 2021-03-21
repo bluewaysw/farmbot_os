@@ -9,9 +9,9 @@ Old versions of FarmBot OS can be found [here](https://github.com/FarmBot/farmbo
 ---
 
 ## Build status
-| Master Build Status  | Staging Build Status | Test Coverage |
+| main Build Status  | Staging Build Status | Test Coverage |
 | :---: | :---: | :---: |
-| [![Master Build Status](https://circleci.com/gh/FarmBot/farmbot_os/tree/master.svg?style=svg)](https://circleci.com/gh/FarmBot/farmbot_os/tree/master) | [![Staging Build Status](https://circleci.com/gh/FarmBot/farmbot_os/tree/staging.svg?style=svg)](https://circleci.com/gh/FarmBot/farmbot_os/tree/staging) | [![codecov](https://codecov.io/gh/FarmBot/farmbot_os/branch/staging/graph/badge.svg)](https://codecov.io/gh/FarmBot/farmbot_os) |
+| [![main Build Status](https://circleci.com/gh/FarmBot/farmbot_os/tree/main.svg?style=svg)](https://circleci.com/gh/FarmBot/farmbot_os/tree/main) | [![Staging Build Status](https://circleci.com/gh/FarmBot/farmbot_os/tree/staging.svg?style=svg)](https://circleci.com/gh/FarmBot/farmbot_os/tree/staging) | [![codecov](https://codecov.io/gh/FarmBot/farmbot_os/branch/staging/graph/badge.svg)](https://codecov.io/gh/FarmBot/farmbot_os) |
 
 ---
 
@@ -21,7 +21,7 @@ Installation should be fairly straight forward, you will need a computer for thi
 
 ### Windows users
 
- 1. download and install [Etcher](https://etcher.io/).
+ 1. download and install [Etcher](https://www.balena.io/etcher/).
  0. download the [latest release](#floppy_disk-latest-os-image-downloads).
  0. insert an SD Card into your PC.
  0. open Etcher, and select the `.img` file you just downloaded.

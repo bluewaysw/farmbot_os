@@ -1,8 +1,99 @@
 # Changelog
 
+# 13.0.1
+
+ * Begin transition back to MQTT from AMQP (ping channel only)
+
+# 13.0.0
+
+ * Nerves system upgrade
+
+# 12.3.4
+
+ * Bug fix for self-hosted image uploads.
+ * Support for new LUA block
+ * Numerous fixes to Lua VM (formulas, ASSERT block, LUA block)
+ * Ability to access sequence variables within LUA block (via `variables.parent`)
+
+# 12.3.3
+
+Bug fixes:
+
+ * SD card errors from log overflow (limit log buffer to 1000 logs max).
+ * app crashes if user accidentally installs very old / incompatible Farmwares.
+ * prevent firmware handler crashes on unexpected or timed out messages.
+ * WiFi-related app crashes on certain networks.
+
+# 12.3.2
+
+ * Improve remote error reporting.
+ * Improve captive portal performance on certain platforms.
+
+# 12.3.1
+
+ * Require explicit call to `read_status()` to update farmware state information.
+
+# 12.3.0
+
+ * Fix farmware bug where farmware system reports stale version of bot state.
+
+# 12.2.3
+
+ * Firmware debug log removal
+
+# 12.2.2
+
+ * Performance updates for Express devices
+ * Fix firmware bug where `report_position_change` was erroneously reported as an error.
+ * Dependency upgrades
+ * Firmware debug log removal
+
+# 12.2.1
+
+ * Performance updates for Express devices
+ * Fix firmware bug where `report_position_change` was erroneously reported as an error.
+
+# 12.2.0
+
+ * Legacy component removal.
+ * Upgrade OS-level dependencies.
+ * Add support for USB Ethernet adapters (for Express users with WiFi trouble)
+
+# 12.1.0
+
+ * `safe_height` and `soil_height` support for MOVE block.
+ * Bug fix relating to auth errors after > 40 days of uptime.
+
+# 12.0.1
+
+ * See release notes for 12.0.0
+
+# 12.0.0
+
+ * Migrate OTA system to an in-house solution.
+ * Express v1.0 firmware updates.
+ * Fix bug where sequences would crash when a `coordinate` is passed as a variable (Thanks, @jsimmonds2).
+
+# 11.1.0
+
+ * Interim release to transition devices to new in-house OTA system
+
+# 11.0.1
+
+ * Bug fix related to usage of tools in MOVE block.
+ * Interim release to transition devices to new in-house OTA system
+
 # 11.0.0
 
  * Auto sync is now mandatory.
+ * Ability to use Lua expressions for movement
+ * Ability to set "variance" to movement commands
+ * Ability to use axial overrides
+ * Ability to perform axis addition
+ * "Safe Z" feature
+ * Remove CeleryScript unused variable warnings in terminal
+ * Ability to set speed for an individual axis (rather than all axes)
+ * Improve accuracy of runtime telemetry (Thanks, @Jsimmonds2)
 
 # 10.1.6
 

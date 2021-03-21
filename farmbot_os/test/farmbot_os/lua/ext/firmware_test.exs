@@ -1,5 +1,6 @@
 defmodule FarmbotOS.Lua.Ext.FirmwareTest do
   alias FarmbotOS.Lua.Ext.Firmware
+  alias FarmbotCeleryScript.SysCalls
   use ExUnit.Case
   use Mimic
   setup :verify_on_exit!
@@ -8,7 +9,7 @@ defmodule FarmbotOS.Lua.Ext.FirmwareTest do
     msg = "expected stub error"
     lua = "return"
 
-    expect(FarmbotCeleryScript.SysCalls, :calibrate, 2, fn
+    expect(SysCalls, :calibrate, 2, fn
       "x" -> :ok
       _ -> {:error, msg}
     end)
@@ -21,7 +22,7 @@ defmodule FarmbotOS.Lua.Ext.FirmwareTest do
     msg = "expected stub error"
     lua = "return"
 
-    expect(FarmbotCeleryScript.SysCalls, :move_absolute, 4, fn
+    expect(SysCalls, :move_absolute, 4, fn
       1, _, _, _ -> :ok
       _, _, _, _ -> {:error, msg}
     end)
@@ -36,7 +37,7 @@ defmodule FarmbotOS.Lua.Ext.FirmwareTest do
     msg = "expected stub error"
     lua = "return"
 
-    expect(FarmbotCeleryScript.SysCalls, :find_home, 2, fn
+    expect(SysCalls, :find_home, 2, fn
       "x" -> :ok
       _ -> {:error, msg}
     end)
@@ -49,10 +50,10 @@ defmodule FarmbotOS.Lua.Ext.FirmwareTest do
     msg = "expected stub error"
     lua = "return"
 
-    expect(FarmbotCeleryScript.SysCalls, :emergency_lock, 1, fn -> :ok end)
+    expect(SysCalls, :emergency_lock, 1, fn -> :ok end)
     assert {[true], ^lua} = Firmware.emergency_lock(:ok, lua)
 
-    expect(FarmbotCeleryScript.SysCalls, :emergency_lock, 1, fn ->
+    expect(SysCalls, :emergency_lock, 1, fn ->
       {:error, msg}
     end)
 
@@ -63,13 +64,29 @@ defmodule FarmbotOS.Lua.Ext.FirmwareTest do
     msg = "expected stub error"
     lua = "return"
 
-    expect(FarmbotCeleryScript.SysCalls, :emergency_unlock, 1, fn -> :ok end)
+    expect(SysCalls, :emergency_unlock, 1, fn -> :ok end)
     assert {[true], ^lua} = Firmware.emergency_unlock(:ok, lua)
 
-    expect(FarmbotCeleryScript.SysCalls, :emergency_unlock, 1, fn ->
+    expect(SysCalls, :emergency_unlock, 1, fn ->
       {:error, msg}
     end)
 
     assert {[nil, ^msg], ^lua} = Firmware.emergency_unlock(nil, lua)
+  end
+
+  test "home" do
+    expect(SysCalls, :get_current_x, 2, fn -> 1.0 end)
+    expect(SysCalls, :get_current_y, 2, fn -> 2.0 end)
+    expect(SysCalls, :get_current_z, 2, fn -> 3.0 end)
+
+    expect(SysCalls, :move_absolute, 2, fn
+      0, 2.0, 3.0, 100 -> :ok
+      1.0, 0, 3.0, 100 -> {:error, "expected stub error"}
+    end)
+
+    msg = "expected stub error"
+    lua = "return"
+    assert {[true], ^lua} = Firmware.go_to_home(["x", 100], lua)
+    assert {[nil, ^msg], ^lua} = Firmware.go_to_home(["y", 100], lua)
   end
 end

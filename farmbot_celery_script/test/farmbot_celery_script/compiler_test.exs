@@ -305,20 +305,13 @@ defmodule FarmbotCeleryScript.CompilerTest do
         args: %{pin_number: 17, pin_mode: 0, pin_value: 1}
       })
 
-    assert compiled ==
-             strip_nl("""
-             pin = 17
-             mode = 0
-             value = 1
+    expected =
+      "pin = 17\nmode = 0\nvalue = 1\n\nwith(:ok <- " <>
+        "FarmbotCeleryScript.SysCalls.write_pin(pin, mode, value))" <>
+        " do\n  me = FarmbotCeleryScript.Compiler.PinControl\n" <>
+        "  me.conclude(pin, mode, value)\nend"
 
-             with(:ok <- FarmbotCeleryScript.SysCalls.write_pin(pin, mode, value)) do
-               if(mode == 0) do
-                 FarmbotCeleryScript.SysCalls.read_pin(pin, mode)
-               else
-                 FarmbotCeleryScript.SysCalls.log("Pin \#{pin} is \#{value} (analog)")
-               end
-             end
-             """)
+    assert compiled == expected
   end
 
   test "compiles read pin" do
@@ -376,53 +369,49 @@ defmodule FarmbotCeleryScript.CompilerTest do
       |> AST.decode()
       |> compile()
 
-    assert compiled ==
-             strip_nl("""
-             [
-               fn params ->
-                 _ = inspect(params)
+    x =
+      strip_nl(
+        "[\n  fn params ->\n    _ = inspect(params)\n\n    (\n      unsafe_cGFyZW50 =\n        Keyword.get(params, :unsafe_cGFyZW50, FarmbotCeleryScript.SysCalls.coordinate(1, 2, 3))\n\n      _ = unsafe_cGFyZW50\n    )\n\n    better_params = %{}\n    _ = inspect(better_params)\n\n    [\n      fn ->\n        me = FarmbotCeleryScript.Compiler.UpdateResource\n\n        variable = %FarmbotCeleryScript.AST{\n          args: %{label: \"parent\"},\n          body: [],\n          comment: nil,\n          kind: :identifier,\n          meta: nil\n        }\n\n        update = %{\"plant_stage\" => \"removed\"}\n\n        case(variable) do\n          %AST{kind: :identifier} ->\n            args = Map.fetch!(variable, :args)\n            label = Map.fetch!(args, :label)\n            resource = Map.fetch!(better_params, label)\n            me.do_update(resource, update)\n\n          %AST{kind: :point} ->\n            me.do_update(variable.args(), update)\n\n          %AST{kind: :resource} ->\n            me.do_update(variable.args(), update)\n\n          res ->\n            raise(\"Resource error. Please notfiy support: \#{inspect(res)}\")\n        end\n      end\n    ]\n  end\n]"
+      )
 
-                 unsafe_cGFyZW50 =
-                   Keyword.get(params, :unsafe_cGFyZW50, FarmbotCeleryScript.SysCalls.coordinate(1, 2, 3))
+    assert compiled == x
+  end
 
-                 better_params = %{}
-                 _ = inspect(better_params)
+  test "`abort`" do
+    fake_env = []
+    ast = %AST{kind: :abort}
+    func = Compiler.compile(ast, fake_env)
+    assert func.() == {:error, "aborted"}
+  end
 
-                 [
-                   fn ->
-                     me = FarmbotCeleryScript.Compiler.UpdateResource
+  test "lua in RPC, no variable declarations" do
+    example = %FarmbotCeleryScript.AST{
+      args: %{
+        label: "abcdefgh"
+      },
+      body: [
+        %FarmbotCeleryScript.AST{
+          args: %{
+            lua: """
+              usage = read_status('informational_settings').scheduler_usage
+              send_message('warn', usage, 'toast');
+            """
+          },
+          body: [],
+          comment: nil,
+          kind: :lua,
+          meta: nil
+        }
+      ],
+      comment: nil,
+      kind: :rpc_request,
+      meta: nil
+    }
 
-                     variable = %FarmbotCeleryScript.AST{
-                       args: %{label: "parent"},
-                       body: [],
-                       comment: nil,
-                       kind: :identifier,
-                       meta: nil
-                     }
-
-                     update = %{"plant_stage" => "removed"}
-
-                     case(variable) do
-                       %AST{kind: :identifier} ->
-                         args = Map.fetch!(variable, :args)
-                         label = Map.fetch!(args, :label)
-                         resource = Map.fetch!(better_params, label)
-                         me.do_update(resource, update)
-
-                       %AST{kind: :point} ->
-                         me.do_update(variable.args(), update)
-
-                       %AST{kind: :resource} ->
-                         me.do_update(variable.args(), update)
-
-                       res ->
-                         raise("Resource error. Please notfiy support: \#{inspect(res)}")
-                     end
-                   end
-                 ]
-               end
-             ]
-             """)
+    result = Compiler.compile(example)
+    # Previously, this would crash because
+    # `better_params` was not declared.
+    assert result
   end
 
   test "`update_resource`: Multiple fields of `resource` type." do

@@ -38,9 +38,6 @@ git tag v1.2.3-rc4
 git push origin v1.2.3-rc4
 ```
 
-or call the helper script:
-`./scripts/release_candidate.sh`
-
 ### NOTE about release candidate script
 
 the helper script only **increments** the
@@ -52,7 +49,6 @@ This will fail:
 ```bash
 $ cat VERSION
 10.5.6
-./scripts/release_candidate.sh
 ```
 
 This will succeed:
@@ -60,7 +56,6 @@ This will succeed:
 ```bash
 $ cat VERSION
 10.5.6-rc44
-./scripts/release_candidate.sh
 ```
 
 ## QA OTA channel
@@ -84,16 +79,16 @@ git push origin some-feature some-feature:qa/some-featuer
 ## Stable OTA channel
 
 Publish an OTA to the `stable` OTA channel can be
-done by pushing anything to the master branch:
+done by pushing anything to the main branch:
 
 ```bash
 # update VERSION
-echo $NEW_VERSION > VERSION
+echo 11.0.1 > VERSION
 # update CHANGELOG.md
 $EDITOR CHANGELOG.md
-git checkout -b rel-$(cat VERSION)
-git commit -am 'Release v$(cat VERSION)'
-git push origin rel-$(cat VERSION)
+git checkout -b rel-11.0.1
+git commit -am 'Release v11.0.1'
+git push origin rel-11.0.1
 # open pull request
 # merge pull request
 # publish release once CI has completed

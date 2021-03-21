@@ -10,22 +10,7 @@ config :vintage_net,
   persistence: VintageNet.Persistence.Null,
   config: [
     {"wlan0", %{type: VintageNet.Technology.Null}},
-    {"usb0",
-     %{
-       type: FarmbotOS.Platform.Target.Configurator.CaptivePortal,
-       ipv4: %{
-         method: :static,
-         address: "192.168.25.1",
-         netmask: "255.255.255.0"
-       },
-       dnsmasq: %{
-         domain: "farmbot",
-         server: "192.168.25.1",
-         address: "192.168.25.1",
-         start: "192.168.25.2",
-         end: "192.168.25.10"
-       }
-     }}
+    {"usb0", %{type: VintageNetDirect}}
   ]
 
 config :mdns_lite,
@@ -101,7 +86,6 @@ config :farmbot_telemetry,
 
 config :farmbot, FarmbotOS.Platform.Supervisor,
   platform_children: [
-    FarmbotOS.Platform.Target.NervesHubClient,
     FarmbotOS.Platform.Target.Network.Supervisor,
     FarmbotOS.Platform.Target.SSHConsole,
     FarmbotOS.Platform.Target.Uevent.Supervisor,

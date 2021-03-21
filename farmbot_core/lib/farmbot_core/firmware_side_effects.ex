@@ -21,7 +21,7 @@ defmodule FarmbotCore.FirmwareSideEffects do
     :noop
   end
 
-    @impl FarmbotFirmware.SideEffects
+  @impl FarmbotFirmware.SideEffects
   def handle_position_change([{axis, _}]) do
     FarmbotCore.Logger.warn(1, "#{axis}-axis stopped at maximum")
     :noop
@@ -159,6 +159,7 @@ defmodule FarmbotCore.FirmwareSideEffects do
   @impl FarmbotFirmware.SideEffects
   def handle_emergency_lock() do
     _ = FirmwareEstopTimer.start_timer()
+    _ = Leds.red(:fast_blink)
     _ = Leds.yellow(:slow_blink)
     :ok = BotState.set_firmware_locked()
   end
@@ -166,44 +167,31 @@ defmodule FarmbotCore.FirmwareSideEffects do
   @impl FarmbotFirmware.SideEffects
   def handle_emergency_unlock() do
     _ = FirmwareEstopTimer.cancel_timer()
+    _ = Leds.red(:solid)
     _ = Leds.yellow(:off)
     :ok = BotState.set_firmware_unlocked()
   end
 
   @impl FarmbotFirmware.SideEffects
-  def handle_input_gcode({_, {:unknown, _}}) do
+  def handle_input_gcode(_) do
     :ok
   end
 
-  def handle_input_gcode({:unknown, _}) do
+  @impl FarmbotFirmware.SideEffects
+  def handle_output_gcode(_code) do
     :ok
   end
 
-  def handle_input_gcode(code) do
-    string_code = FarmbotFirmware.GCODE.encode(code)
-    should_log? = Asset.fbos_config().firmware_input_log
-    should_log? && FarmbotCore.Logger.debug(3, "Firmware input: " <> string_code)
-  end
-
   @impl FarmbotFirmware.SideEffects
-  def handle_output_gcode(code) do
-    string_code = FarmbotFirmware.GCODE.encode(code)
-    should_log? = Asset.fbos_config().firmware_output_log
-    should_log? && FarmbotCore.Logger.debug(3, "Firmware output: " <> string_code)
+  def handle_debug_message([_message]) do
+    :ok
   end
 
-  @impl FarmbotFirmware.SideEffects
-  def handle_debug_message([message]) do
-    fbos_config = Asset.fbos_config()
-    should_log? = fbos_config.firmware_debug_log || fbos_config.arduino_debug_messages
-    should_log? && do_send_debug_message(message)
-  end
-
-  # TODO(Rick): 0 means OK, but firmware debug logs say "error 0". Why?
-  def do_send_debug_message("error 0"), do: do_send_debug_message("OK")
-
-  def do_send_debug_message(message) do
-    FarmbotCore.Logger.debug(3, "Firmware debug message: " <> message)
+  def do_send_debug_message(_message_string) do
+    # Uncomment this line on dev builds if needed.
+    # Firmware debug over AMQP is deprecated.
+    # FarmbotCore.Logger.debug(3, "Firmware debug message: " <> message)
+    :ok
   end
 
   @impl FarmbotFirmware.SideEffects
@@ -239,6 +227,7 @@ defmodule FarmbotCore.FirmwareSideEffects do
       :movement_steps_acc_dec_x,
       :movement_steps_acc_dec_y,
       :movement_steps_acc_dec_z,
+      :movement_steps_acc_dec_z2,
       :movement_stop_at_home_x,
       :movement_stop_at_home_y,
       :movement_stop_at_home_z,
@@ -251,12 +240,14 @@ defmodule FarmbotCore.FirmwareSideEffects do
       :movement_min_spd_x,
       :movement_min_spd_y,
       :movement_min_spd_z,
+      :movement_min_spd_z2,
       :movement_home_spd_x,
       :movement_home_spd_y,
       :movement_home_spd_z,
       :movement_max_spd_x,
       :movement_max_spd_y,
       :movement_max_spd_z,
+      :movement_max_spd_z2,
       :movement_invert_2_endpoints_x,
       :movement_invert_2_endpoints_y,
       :movement_invert_2_endpoints_z,

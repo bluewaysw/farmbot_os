@@ -88,6 +88,10 @@ defmodule FarmbotCeleryScript.SysCalls.Stubs do
   def move_absolute(x, y, z, speed), do: error(:move_absolute, [x, y, z, speed])
 
   @impl true
+  def move_absolute(x, y, z, sx, sy, sz),
+    do: error(:move_absolute, [x, y, z, sx, sy, sz])
+
+  @impl true
   def named_pin(named_pin_type, resource_id),
     do: error(:named_pin, [named_pin_type, resource_id])
 
@@ -118,6 +122,12 @@ defmodule FarmbotCeleryScript.SysCalls.Stubs do
 
   @impl true
   def reboot(), do: error(:reboot, [])
+
+  @impl true
+  def raw_lua_eval(expr), do: error(:raw_lua_eval, [expr])
+
+  @impl true
+  def raw_lua_eval(expr, extras), do: error(:raw_lua_eval, [expr, extras])
 
   @impl true
   def send_message(type, message, channels),
@@ -154,12 +164,15 @@ defmodule FarmbotCeleryScript.SysCalls.Stubs do
   def eval_assertion(comment, expression),
     do: error(:eval_assertion, [comment, expression])
 
+  @impl true
+  def fbos_config(), do: error(:fbos_config, [])
+
   defp error(fun, _args) do
     msg = """
     CeleryScript syscall stubbed: #{fun}
     """
 
-    Logger.error(msg)
+    # Logger.error(msg)
     {:error, msg}
   end
 end

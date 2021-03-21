@@ -1,4 +1,6 @@
 A list of important changes to FarmBot OS organized by major version.
+Only includes notes about changes where user intervention is required.
+For a complete list of changes and features, see the [changelog](CHANGELOG.md).
 _This file is parsed by the FarmBot Web App._
 
 # v6
@@ -39,3 +41,14 @@ FarmBot OS v10 features an improved *Mark As* step. If you have previously added
 * Verify that any events using the updated sequences are running as expected.
 <br>
 FarmBot OS auto-update was disabled prior to this release. If you would like to continue receiving automatic updates, please re-enable auto-update.
+
+# v11
+
+* FarmBot OS v11 uses a new `MOVE` step. While the `MOVE TO` and `MOVE RELATIVE` steps in existing sequences will continue to work, only the new `MOVE` step can be added in the sequence editor.
+* FarmBot OS v12 uses a new over-the-air update system. Updates from FarmBot OS versions older than v11.1.0 will first upgrade to v11.1.0, after which the new update system can be used to upgrade to FarmBot OS v12 and beyond.
+
+# v12
+
+# v13
+
+ * FarmBot OS uses a new network transport that is more resilient to poor connectivity. If you experience a CODE 26 ERROR, you must unblock TCP port 8883.

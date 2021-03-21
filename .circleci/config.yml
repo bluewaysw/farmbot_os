@@ -2,14 +2,14 @@ version: 2.0
 defaults: &defaults
   working_directory: /nerves/build
   docker:
-    - image: nervesproject/nerves_system_br:1.11.3
+    - image: nervesproject/nerves_system_br:1.13.2
 
 install_elixir: &install_elixir
   run:
     name: Install Elixir
     command: |
-      wget https://repo.hex.pm/builds/elixir/v1.9.0-otp-22.zip
-      unzip -d /usr/local/elixir v1.9.0-otp-22.zip
+      wget https://repo.hex.pm/builds/elixir/v1.10.4-otp-23.zip
+      unzip -d /usr/local/elixir v1.10.4-otp-23.zip
       echo 'export PATH=/usr/local/elixir/bin:$PATH' >> $BASH_ENV
 
 install_hex_archives: &install_hex_archives
@@ -19,19 +19,12 @@ install_hex_archives: &install_hex_archives
       cd /tmp
       mix local.hex --force
       mix local.rebar --force
-      mix archive.install hex nerves_bootstrap "~> 1.6" --force
+      mix archive.install hex nerves_bootstrap "~> 1.9" --force
 
 install_arduino: &install_arduino
   run:
     name: Run setup script
     command: bash .circleci/setup-arduino.sh
-
-install_slack_helpers: &install_slack_helpers
-  run:
-    name: Install Slack Helpers
-    command: |
-      wget https://gist.githubusercontent.com/ConnorRigby/03e722be4be70f8588f5ed74420e4eaa/raw/28a51d8f52ec7d569e8f7f20b83349816ddf63cf/slack_message.ex
-      cp .circleci/fwup_meta_slack.sh /usr/bin/
 
 install_ghr: &install_ghr
   run:
@@ -58,13 +51,13 @@ install_libnl: &install_libnl
 
 install_mdl: &install_mdl
   run:
-    name: Install libnl
+    name: Install Ruby / mdl
     command: |
       apt-get update
       apt-get install ruby -y
       gem install mdl
 
-build_firmware_steps: &build_firmware_steps
+steps_to_build_cached_firmware: &steps_to_build_cached_firmware
   steps:
     - checkout
     - run: git submodule update --init --recursive
@@ -105,7 +98,7 @@ build_firmware_steps: &build_firmware_steps
         paths:
           - "/nerves/deploy/system"
 
-build_firmware_clean_steps: &build_firmware_clean_steps
+steps_to_build_fresh_firmware: &steps_to_build_fresh_firmware
   steps:
     - checkout
     - run: git submodule update --init --recursive
@@ -142,7 +135,7 @@ build_firmware_clean_steps: &build_firmware_clean_steps
         paths:
           - "/nerves/deploy/system"
 
-deploy_nerves_hub_firmware_steps: &deploy_nerves_hub_firmware_steps
+predeploy_setup: &predeploy_setup
   steps:
     - checkout
     - run: git submodule update --init --recursive
@@ -158,20 +151,6 @@ deploy_nerves_hub_firmware_steps: &deploy_nerves_hub_firmware_steps
     - <<: *install_elixir
     - <<: *install_hex_archives
     - <<: *install_jq
-    - <<: *install_slack_helpers
-    - run:
-        name: Sign Image
-        working_directory: /nerves/build/farmbot_os
-        command: |
-          mix deps.get
-          mix nerves_hub.firmware sign --key notreal /nerves/deploy/system/artifacts/farmbot-${MIX_TARGET}-$(cat ../VERSION).fw
-    - run:
-        name: Publish to NervesHub
-        working_directory: /nerves/build/farmbot_os
-        command: mix nerves_hub.firmware publish --deploy ${NERVES_HUB_DEPLOY} ${NERVES_HUB_TTL} /nerves/deploy/system/artifacts/farmbot-${MIX_TARGET}-$(cat ../VERSION).fw
-    - run:
-        name: Send Slack Message
-        command: ./.circleci/fwup_meta_slack.sh -i /nerves/deploy/system/artifacts/farmbot-${MIX_TARGET}-$(cat VERSION).fw
 
 jobs:
 
@@ -185,7 +164,7 @@ jobs:
       MIX_ENV: test
       MIX_TARGET: host
       NERVES_LOG_DISABLE_PROGRESS_BAR: "yes"
-      ELIXIR_VERSION: 1.8.0
+      ELIXIR_VERSION: 1.10.4
     steps:
       - checkout
       - restore_cache:
@@ -220,7 +199,7 @@ jobs:
       MIX_ENV: test
       MIX_TARGET: host
       NERVES_LOG_DISABLE_PROGRESS_BAR: "yes"
-      ELIXIR_VERSION: 1.8.0
+      ELIXIR_VERSION: 1.10.4
     steps:
       - checkout
       - restore_cache:
@@ -255,7 +234,7 @@ jobs:
       MIX_ENV: test
       MIX_TARGET: host
       NERVES_LOG_DISABLE_PROGRESS_BAR: "yes"
-      ELIXIR_VERSION: 1.8.0
+      ELIXIR_VERSION: 1.10.4
       TZ: "America/Los_Angeles"
     steps:
       - checkout
@@ -310,7 +289,7 @@ jobs:
       MIX_ENV: test
       MIX_TARGET: host
       NERVES_LOG_DISABLE_PROGRESS_BAR: "yes"
-      ELIXIR_VERSION: 1.8.0
+      ELIXIR_VERSION: 1.10.4
       SKIP_ARDUINO_BUILD: 1
     steps:
       - checkout
@@ -349,7 +328,7 @@ jobs:
       MIX_ENV: test
       MIX_TARGET: host
       NERVES_LOG_DISABLE_PROGRESS_BAR: "yes"
-      ELIXIR_VERSION: 1.8.0
+      ELIXIR_VERSION: 1.10.4
     steps:
       - checkout
       - run: git submodule update --init --recursive
@@ -380,7 +359,7 @@ jobs:
           path: farmbot_os/cover
 
 ################################################################################
-#                           target=rpi app_env=prod                            #
+#                           Build the targets
 ################################################################################
 
   build_rpi_prod:
@@ -388,139 +367,56 @@ jobs:
     environment:
       MIX_TARGET: rpi
       MIX_ENV: prod
-    <<: *build_firmware_steps
-
-################################################################################
-#                           target=rpi3 app_env=prod                           #
-################################################################################
+    <<: *steps_to_build_cached_firmware
 
   build_rpi3_prod:
     <<: *defaults
     environment:
       MIX_TARGET: rpi3
       MIX_ENV: prod
-    <<: *build_firmware_steps
+    <<: *steps_to_build_cached_firmware
 
-################################################################################
-#                           target=rpi app_env=prod                            #
-################################################################################
-
-  build_clean_rpi_prod:
+  build_fresh_rpi:
     <<: *defaults
     environment:
       MIX_TARGET: rpi
       MIX_ENV: prod
-    <<: *build_firmware_clean_steps
+    <<: *steps_to_build_fresh_firmware
 
-################################################################################
-#                           target=rpi3 app_env=prod                           #
-################################################################################
-
-  build_clean_rpi3_prod:
+  build_fresh_rpi3:
     <<: *defaults
     environment:
       MIX_TARGET: rpi3
       MIX_ENV: prod
-    <<: *build_firmware_clean_steps
+    <<: *steps_to_build_fresh_firmware
 
 ################################################################################
-#                    target=rpi app_env=prod channel=stable                    #
+#                    Release Targets
 ################################################################################
 
-  deploy_rpi_prod_stable:
+  predeploy_rpi3:
+    <<: *defaults
+    environment:
+      MIX_TARGET: rpi3
+      MIX_ENV: prod
+    <<: *predeploy_setup
+
+  predeploy_rpi:
     <<: *defaults
     environment:
       MIX_TARGET: rpi
       MIX_ENV: prod
-      NERVES_HUB_DEPLOY: rpi-prod-stable
-    <<: *deploy_nerves_hub_firmware_steps
+    <<: *predeploy_setup
 
 ################################################################################
-#                    target=rpi3 app_env=prod channel=stable                   #
+#               TARGET FIRMWARE NERVES GITHUB RELEASE main                   #
 ################################################################################
 
-  deploy_rpi3_prod_stable:
-    <<: *defaults
-    environment:
-      MIX_TARGET: rpi3
-      MIX_ENV: prod
-      NERVES_HUB_DEPLOY: rpi3-prod-stable
-    <<: *deploy_nerves_hub_firmware_steps
-
-################################################################################
-#                    target=rpi app_env=prod channel=beta                      #
-################################################################################
-
-  deploy_rpi_prod_beta:
-    <<: *defaults
-    environment:
-      MIX_TARGET: rpi
-      MIX_ENV: prod
-      NERVES_HUB_DEPLOY: rpi-prod-beta
-      NERVES_HUB_TTL: "--ttl 3600"
-    <<: *deploy_nerves_hub_firmware_steps
-
-################################################################################
-#                     target=rpi3 app_env=prod channel=beta                    #
-################################################################################
-
-  deploy_rpi3_prod_beta:
-    <<: *defaults
-    environment:
-      MIX_TARGET: rpi3
-      MIX_ENV: prod
-      NERVES_HUB_DEPLOY: rpi3-prod-beta
-      NERVES_HUB_TTL: "--ttl 3600"
-    <<: *deploy_nerves_hub_firmware_steps
-
-################################################################################
-#                     target=rpi3 app_env=prod channel=staging                 #
-################################################################################
-
-  deploy_rpi3_prod_staging:
-    <<: *defaults
-    environment:
-      MIX_TARGET: rpi3
-      MIX_ENV: prod
-      NERVES_HUB_DEPLOY: rpi3-prod-staging
-      NERVES_HUB_TTL: "--ttl 900"
-    <<: *deploy_nerves_hub_firmware_steps
-
-################################################################################
-#                     target=rpi3 app_env=prod channel=qa                      #
-################################################################################
-
-  deploy_rpi3_prod_qa:
-    <<: *defaults
-    environment:
-      MIX_TARGET: rpi3
-      MIX_ENV: prod
-      NERVES_HUB_DEPLOY: rpi3-prod-qa
-      NERVES_HUB_TTL: "--ttl 900"
-    <<: *deploy_nerves_hub_firmware_steps
-
-################################################################################
-#                     target=rpi app_env=prod channel=qa                       #
-################################################################################
-
-  deploy_rpi_prod_qa:
-    <<: *defaults
-    environment:
-      MIX_TARGET: rpi
-      MIX_ENV: prod
-      NERVES_HUB_DEPLOY: rpi-prod-qa
-      NERVES_HUB_TTL: "--ttl 900"
-    <<: *deploy_nerves_hub_firmware_steps
-
-################################################################################
-#                TARGET FIRMWARE NERVES GITHUB RELEASE BETA                    #
-################################################################################
-
-  publish_prod_firmware_beta_release:
+  release_to_github:
     <<: *defaults
     environment:
       MIX_ENV: prod
-      ELIXIR_VERSION: 1.8.0
+      ELIXIR_VERSION: 1.10.4
     steps:
       - checkout
       - run:
@@ -536,66 +432,9 @@ jobs:
       - <<: *install_elixir
       - <<: *install_hex_archives
       - <<: *install_ghr
-      - <<: *install_slack_helpers
-      - <<: *install_jq
       - add_ssh_keys:
           fingerprints:
             - "97:92:32:5d:d7:96:e1:fa:f3:6b:f3:bd:d6:aa:84:c6"
-      - run: grep -Pazo "(?s)(?<=# $(cat VERSION | cut -f1 -d"-"))[^#]+" CHANGELOG.md > RELEASE_NOTES
-      - run: echo $FWUP_KEY_BASE64 | base64 --decode --ignore-garbage > $NERVES_FW_PRIV_KEY
-      - run:
-          name: Sign rpi3 Firmware
-          command: |
-            mv /nerves/deploy/system/artifacts/farmbot-rpi3-$(cat VERSION).fw /tmp/farmbot-rpi3-$(cat VERSION).fw
-            fwup -S -s $NERVES_FW_PRIV_KEY -i /tmp/farmbot-rpi3-$(cat VERSION).fw -o /nerves/deploy/system/artifacts/farmbot-rpi3-$(cat VERSION).fw
-            fwup -a -t complete -i /nerves/deploy/system/artifacts/farmbot-rpi3-$(cat VERSION).fw -d /nerves/deploy/system/artifacts/farmbot-rpi3-$(cat VERSION).img
-            sha256sum /nerves/deploy/system/artifacts/farmbot-rpi3-$(cat VERSION).img > /nerves/deploy/system/artifacts/farmbot-rpi3-$(cat VERSION).sha256
-      - run:
-          name: Sign rpi Firmware
-          command: |
-            mv /nerves/deploy/system/artifacts/farmbot-rpi-$(cat VERSION).fw /tmp/farmbot-rpi-$(cat VERSION).fw
-            fwup -S -s $NERVES_FW_PRIV_KEY -i /tmp/farmbot-rpi-$(cat VERSION).fw -o /nerves/deploy/system/artifacts/farmbot-rpi-$(cat VERSION).fw
-            fwup -a -t complete -i /nerves/deploy/system/artifacts/farmbot-rpi-$(cat VERSION).fw -d /nerves/deploy/system/artifacts/farmbot-rpi-$(cat VERSION).img
-            sha256sum /nerves/deploy/system/artifacts/farmbot-rpi-$(cat VERSION).img > /nerves/deploy/system/artifacts/farmbot-rpi-$(cat VERSION).sha256
-      - run:
-          name: Publish Github Release
-          command: ./ghr -t $GITHUB_TOKEN -u farmbot -r farmbot_os -prerelease -recreate -prerelease -b "$(cat RELEASE_NOTES)" -c $(git rev-parse --verify HEAD) "v$(cat VERSION)" /nerves/deploy/system/artifacts/
-      - run:
-          name: Slack message
-          command: |
-            export OTA_URL=$(wget https://api.github.com/repos/farmbot/farmbot_os/releases -qO- | jq '.[0].url' | sed -e 's/^"//' -e 's/"$//')
-            export SLACK_MESSAGE="New Farmbot Beta: $OTA_URL"
-            elixir slack_message.ex $SLACK_MESSAGE
-
-################################################################################
-#               TARGET FIRMWARE NERVES GITHUB RELEASE MASTER                   #
-################################################################################
-
-  publish_prod_firmware_master_release:
-    <<: *defaults
-    environment:
-      MIX_ENV: prod
-      ELIXIR_VERSION: 1.8.0
-    steps:
-      - checkout
-      - run:
-          name: Setup ENV
-          command: |
-            echo rpi3 > MIX_TARGET_RPI3
-            echo rpi > MIX_TARGET_RPI
-            echo $MIX_ENV > MIX_ENV
-      - restore_cache:
-          key: nerves/deploy/system-{{ checksum "MIX_TARGET_RPI3" }}-{{ .Branch }}-{{ .Revision }}-{{ .Environment.CIRCLE_TAG }}
-      - restore_cache:
-          key: nerves/deploy/system-{{ checksum "MIX_TARGET_RPI" }}-{{ .Branch }}-{{ .Revision }}-{{ .Environment.CIRCLE_TAG }}
-      - <<: *install_elixir
-      - <<: *install_hex_archives
-      - <<: *install_ghr
-      - <<: *install_slack_helpers
-      - add_ssh_keys:
-          fingerprints:
-            - "97:92:32:5d:d7:96:e1:fa:f3:6b:f3:bd:d6:aa:84:c6"
-      - run: grep -Pazo "(?s)(?<=# $(cat VERSION))[^#]+" CHANGELOG.md > RELEASE_NOTES
       - run: echo $FWUP_KEY_BASE64 | base64 --decode --ignore-garbage > $NERVES_FW_PRIV_KEY
       - run:
           name: Sign rpi3 Firmware and create image
@@ -614,9 +453,6 @@ jobs:
       - run:
           name: Publish Github Release
           command: ./ghr -t $GITHUB_TOKEN -u farmbot -r farmbot_os -recreate -prerelease -draft -delete -b "$(cat RELEASE_NOTES)" -c $(git rev-parse --verify HEAD) "v$(cat VERSION)" /nerves/deploy/system/artifacts
-      - run:
-          name: Send Slack Message
-          command: elixir slack_message.ex "New Farmbot Prod release $(cat VERSION)"
 
 workflows:
   version: 2
@@ -627,253 +463,58 @@ workflows:
           filters:
             branches:
               ignore:
-                - master
-                - staging
-                - beta
-                - next
-                - /^qa\/.*/
+                - main
       - test_farmbot_firmware:
           context: org-global
           filters:
             branches:
               ignore:
-                - master
-                - staging
-                - beta
-                - next
-                - /^qa\/.*/
+                - main
       - test_farmbot_core:
           context: org-global
           filters:
             branches:
               ignore:
-                - master
-                - staging
-                - beta
-                - next
-                - /^qa\/.*/
+                - main
       - test_farmbot_ext:
           context: org-global
           filters:
             branches:
               ignore:
-                - master
-                - staging
-                - beta
-                - next
-                - /^qa\/.*/
+                - main
       - test_farmbot_os:
           context: org-global
           filters:
             branches:
               ignore:
-                - master
-                - staging
-                - beta
-                - next
-                - /^qa\/.*/
-
-  # master branch to staging.farmbot.io
-  nerves_hub_prod_stable_staging:
+                - main
+  # main branch to my.farmbot.io
+  create_github_release:
     jobs:
-      - build_clean_rpi_prod:
-          context: farmbot-staging
-          filters:
-            branches:
-              only:
-                - master
-      - build_clean_rpi3_prod:
-          context: farmbot-staging
-          filters:
-            branches:
-              only:
-                - master
-      - deploy_rpi_prod_stable:
-          context: farmbot-staging
-          requires:
-            - build_clean_rpi_prod
-      - deploy_rpi3_prod_stable:
-          context: farmbot-staging
-          requires:
-            - build_clean_rpi3_prod
-
-  # master branch to my.farmbot.io
-  nerves_hub_prod_stable_production:
-    jobs:
-      - build_clean_rpi_prod:
-          context: farmbot-production
-          filters:
-            branches:
-              only:
-                - master
-      - build_clean_rpi3_prod:
-          context: farmbot-production
-          filters:
-            branches:
-              only:
-                - master
-      - deploy_rpi_prod_stable:
-          context: farmbot-production
-          requires:
-            - build_clean_rpi_prod
-      - deploy_rpi3_prod_stable:
-          context: farmbot-production
-          requires:
-            - build_clean_rpi3_prod
-      - publish_prod_firmware_master_release:
-          context: org-global
-          requires:
-            - build_clean_rpi_prod
-            - build_clean_rpi3_prod
-
-  # any tag containint an `-rcXXX` tag to staging.farmbot.io
-  nerves_hub_prod_beta_staging:
-    jobs:
-      - build_rpi_prod:
-          context: farmbot-staging
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-rc(0|[1-9]\d*)+?/
-      - build_rpi3_prod:
-          context: farmbot-staging
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-rc(0|[1-9]\d*)+?/
-      - deploy_rpi_prod_beta:
-          context: farmbot-staging
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-rc(0|[1-9]\d*)+?/
-          requires:
-            - build_rpi_prod
-      - deploy_rpi3_prod_beta:
-          context: farmbot-staging
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-rc(0|[1-9]\d*)+?/
-          requires:
-            - build_rpi3_prod
-
-  # any tag containint an `-rcXXX` tag to my.farmbot.io
-  nerves_hub_prod_beta_production:
-    jobs:
-      - build_rpi_prod:
-          context: farmbot-production
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-rc(0|[1-9]\d*)+?/
-      - build_rpi3_prod:
-          context: farmbot-production
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-rc(0|[1-9]\d*)+?/
-      - deploy_rpi_prod_beta:
-          context: farmbot-production
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-rc(0|[1-9]\d*)+?/
-          requires:
-            - build_rpi_prod
-      - deploy_rpi3_prod_beta:
-          context: farmbot-production
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-rc(0|[1-9]\d*)+?/
-          requires:
-            - build_rpi3_prod
-      - publish_prod_firmware_beta_release:
+      - build_fresh_rpi:
           context: org-global
           filters:
             branches:
-              ignore: /.*/
-            tags:
-              only: /v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-rc(0|[1-9]\d*)+?/
+              only:
+                - main
+                - /^qa\/.*/
+      - build_fresh_rpi3:
+          context: org-global
+          filters:
+            branches:
+              only:
+                - main
+                - /^qa\/.*/
+      - predeploy_rpi:
+          context: org-global
           requires:
-            # - build_rpi_prod
-            - build_rpi3_prod
-
-  # any branch matching qa/** to staging.farmbot.io
-  nerves_hub_prod_staging_staging:
-    jobs:
-      - build_rpi3_prod:
-          context: farmbot-staging
-          filters:
-            branches:
-              only:
-                - /^qa\/.*/
-
-      - build_rpi_prod:
-          context: farmbot-staging
-          filters:
-            branches:
-              only:
-                - /^qa\/.*/
-
-      - deploy_rpi3_prod_qa:
-          context: farmbot-staging
-          filters:
-            branches:
-              only:
-                - /^qa\/.*/
+            - build_fresh_rpi
+      - predeploy_rpi3:
+          context: org-global
           requires:
-            - build_rpi3_prod
-
-      - deploy_rpi_prod_qa:
-          context: farmbot-staging
-          filters:
-            branches:
-              only:
-                - /^qa\/.*/
+            - build_fresh_rpi3
+      - release_to_github:
+          context: org-global
           requires:
-            - build_rpi_prod
-
-  # any branch matching qa/** to production.farmbot.io
-  nerves_hub_prod_staging_production:
-    jobs:
-      - build_rpi3_prod:
-          context: farmbot-production
-          filters:
-            branches:
-              only:
-                - /^qa\/.*/
-
-      - build_rpi_prod:
-          context: farmbot-production
-          filters:
-            branches:
-              only:
-                - /^qa\/.*/
-
-      - deploy_rpi3_prod_qa:
-          context: farmbot-production
-          filters:
-            branches:
-              only:
-                - /^qa\/.*/
-          requires:
-            - build_rpi3_prod
-
-      - deploy_rpi_prod_qa:
-          context: farmbot-production
-          filters:
-            branches:
-              only:
-                - /^qa\/.*/
-          requires:
-            - build_rpi_prod
+            - build_fresh_rpi
+            - build_fresh_rpi3

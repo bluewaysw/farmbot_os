@@ -57,6 +57,14 @@ defmodule FarmbotCeleryScript.SysCalls do
               speed :: number()
             ) ::
               ok_or_error
+  @callback move_absolute(
+              x :: number(),
+              y :: number(),
+              z :: number(),
+              sx :: number(),
+              sy :: number(),
+              sz :: number()
+            ) :: ok_or_error
   @callback named_pin(named_pin_type :: String.t(), resource_id) ::
               map() | integer | error()
   @callback nothing() :: any()
@@ -89,12 +97,15 @@ defmodule FarmbotCeleryScript.SysCalls do
   @callback sequence_complete_log(message :: String.t()) :: any()
   @callback eval_assertion(comment :: String.t(), expression :: String.t()) ::
               true | false | error()
-
+  @callback raw_lua_eval(expression :: String.t()) :: ok_or_error
+  @callback raw_lua_eval(expression :: String.t(), extras :: list(any())) ::
+              ok_or_error
   @callback find_points_via_group(String.t() | resource_id) :: %{
               required(:point_ids) => [resource_id]
             }
   @callback update_resource(kind :: String.t(), resource_id, params :: map()) ::
               ok_or_error
+  @callback fbos_config() :: ok_or_error
 
   def find_points_via_group(sys_calls \\ @sys_calls, point_group_id) do
     point_group_or_error(sys_calls, :find_points_via_group, [point_group_id])
@@ -257,6 +268,30 @@ defmodule FarmbotCeleryScript.SysCalls do
     ok_or_error(sys_calls, :move_absolute, [x, y, z, speed])
   end
 
+  def move_absolute(
+        sys_calls \\ @sys_calls,
+        x,
+        y,
+        z,
+        speed_x,
+        speed_y,
+        speed_z
+      )
+      when is_number(x)
+      when is_number(y)
+      when is_number(z) do
+    params = [
+      x,
+      y,
+      z,
+      speed_x,
+      speed_y,
+      speed_z
+    ]
+
+    ok_or_error(sys_calls, :move_absolute, params)
+  end
+
   def named_pin(sys_calls \\ @sys_calls, type, id) do
     case sys_calls.named_pin(type, id) do
       %{} = data -> %{} = data
@@ -277,6 +312,14 @@ defmodule FarmbotCeleryScript.SysCalls do
     ok_or_error(sys_calls, :power_off, [])
   end
 
+  def raw_lua_eval(sys_calls \\ @sys_calls, args) do
+    if is_list(args) do
+      apply(sys_calls, :raw_lua_eval, args)
+    else
+      apply(sys_calls, :raw_lua_eval, [args])
+    end
+  end
+
   def read_pin(sys_calls \\ @sys_calls, pin_num, pin_mode) do
     number_or_error(sys_calls, :read_pin, [pin_num, pin_mode])
   end
@@ -290,6 +333,8 @@ defmodule FarmbotCeleryScript.SysCalls do
   end
 
   def read_status(sys_calls \\ @sys_calls) do
+    fs = FarmbotCore.BotState.FileSystem
+    if Process.whereis(fs), do: send(fs, :timeout)
     ok_or_error(sys_calls, :read_status, [])
   end
 
@@ -331,6 +376,13 @@ defmodule FarmbotCeleryScript.SysCalls do
 
   def update_resource(sys_calls \\ @sys_calls, kind, id, params) do
     ok_or_error(sys_calls, :update_resource, [kind, id, params])
+  end
+
+  def fbos_config(sys_calls \\ @sys_calls) do
+    case apply(sys_calls, :fbos_config, []) do
+      {:ok, conf} -> {:ok, conf}
+      error -> or_error(sys_calls, :fbos_config, [], error)
+    end
   end
 
   defp ok_or_error(sys_calls, fun, args) do
