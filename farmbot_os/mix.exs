@@ -94,7 +94,7 @@ defmodule FarmbotOS.MixProject do
       {:farmbot_core, path: "../farmbot_core", env: Mix.env()},
       {:farmbot_ext, path: "../farmbot_ext", env: Mix.env()},
       {:farmbot_system_rpi4, git: "https://github.com/bluewaysw/farmbot_system_rpi4.git", 
-      tag: "v1.14.0-farmbot.6", runtime: false, targets: :rpi4},
+      tag: "v1.14.0-farmbot.7", runtime: false, targets: :rpi4},
       {:farmbot_telemetry, path: "../farmbot_telemetry", env: Mix.env()},
       {:luerl, github: "rvirding/luerl"},
       {:mdns_lite, "~> 0.6.6", targets: @all_targets},
