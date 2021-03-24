@@ -28,7 +28,7 @@
   "extty": {:hex, :extty, "0.2.1", "4da6d78d41f0a9ff9980d82968476b4277ac0afa227d2ed91af0ffcbac2f451b", [:mix], [], "hexpm", "26b2e495c14501d4ae24c7dffba199f6abf0a0f69dcfd07db62f421952442f05"},
   "farmbot_system_rpi": {:git, "https://github.com/FarmBot/farmbot_system_rpi.git", "059b6770a255a6f3275972bf04d9e0cd3e8b6d47", [tag: "v1.14.1-farmbot.1"]},
   "farmbot_system_rpi3": {:git, "https://github.com/FarmBot/farmbot_system_rpi3.git", "cf1758bf92c5ee4403cea02c3312a8ded97ca28d", [tag: "v1.14.0-farmbot.1"]},
-  "farmbot_system_rpi4": {:git, "https://github.com/bluewaysw/farmbot_system_rpi4.git", "326183c2de573edfbf51754074e675c6f8ab9cdb", [tag: "v1.14.0-farmbot.8"]},
+  "farmbot_system_rpi4": {:git, "https://github.com/bluewaysw/farmbot_system_rpi4.git", "19d931a4624d58de3077fac5b9178957bdff8656", [tag: "v1.14.0-farmbot.9"]},
   "fwup": {:hex, :fwup, "0.3.0", "2c360815565fcbc945ebbb34b58f156efacb7f8d64766f1cb3426919bb3f41ea", [:mix], [], "hexpm", "d12990ebda7d485d0eb7502df7aa9a56e66f67b5eda158c352db1de48e3f0518"},
   "gen_state_machine": {:hex, :gen_state_machine, "3.0.0", "1e57f86a494e5c6b14137ebef26a7eb342b3b0070c7135f2d6768ed3f6b6cdff", [:mix], [], "hexpm", "0a59652574bebceb7309f6b749d2a41b45fdeda8dbb4da0791e355dd19f0ed15"},
   "gettext": {:hex, :gettext, "0.18.2", "7df3ea191bb56c0309c00a783334b288d08a879f53a7014341284635850a6e55", [:mix], [], "hexpm", "f9f537b13d4fdd30f3039d33cb80144c3aa1f8d9698e47d7bcbcc8df93b1f5c5"},
