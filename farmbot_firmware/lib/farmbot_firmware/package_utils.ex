@@ -7,6 +7,11 @@ defmodule FarmbotFirmware.PackageUtils do
     |> assert_exists()
   end
 
+  def find_hex_file("arduino16") do
+    Application.app_dir(:farmbot_firmware, ["priv", "arduino16_firmware.hex"])
+    |> assert_exists()
+  end
+
   def find_hex_file("farmduino") do
     Application.app_dir(:farmbot_firmware, ["priv", "farmduino.hex"])
     |> assert_exists()
@@ -41,6 +46,9 @@ defmodule FarmbotFirmware.PackageUtils do
 
   def package_to_string("arduino"),
     do: "Arduino/RAMPS (Genesis v1.2)"
+
+  def package_to_string("arduino16"),
+    do: "Arduino/RAMPS16 (Butget v1.0)"
 
   def package_to_string("farmduino"),
     do: "Farmduino (Genesis v1.3)"
