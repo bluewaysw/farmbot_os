@@ -1,5 +1,47 @@
 # Changelog
 
+# 14.1.0
+
+ * Routine system upgrades.
+ * Fix box LEDs (solid red when firmware online).
+ * Fix espeak logs.
+ * Remove useless / developer-centric logs
+
+# 14.0.3
+
+ * Fix bug where some FarmEvent and Regimen executions silently fail
+ * Add `wait()` helper to Lua
+ * Minor changes to firmware restart logic
+ * Remove non-actionable disconnect logs.
+
+# 14.0.2
+
+ * Better error output for Lua users
+ * Bug fix in Lua `read_pin` helper
+ * Bug fix in Lua `uart.*` helpers (ALPHA status - feedback welcome!)
+ * Routine dep. updates.
+
+# 14.0.1
+
+ * Bugfix for CODE 30 error under rare circumstances.
+
+# 14.0.0
+
+ * Complete overhaul of firmware handler in FBOS.
+ * Genesis and Express firmware updates.
+ * Ability to use `custom.hex` firmware file in user data partition instead of default firmware.
+ * Ability to detect missing boot loader.
+ * Bug fix for devices that became throttled after long disconnects.
+ * Alpha support for 3rd paty UART devices in Lua sandbox.
+
+# 13.2.0
+
+ * Expose `set_pin_io_mode` to Lua (feature request from forum use @JoeHou)
+
+# 13.1.0
+
+ * Finalize AMQP removal. MQTT is the only transport now.
+
 # 13.0.1
 
  * Begin transition back to MQTT from AMQP (ping channel only)

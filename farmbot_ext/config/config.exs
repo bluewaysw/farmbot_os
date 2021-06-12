@@ -68,17 +68,6 @@ config :farmbot_core, FarmbotCore.EctoMigrator,
   default_currently_on_beta:
     String.contains?(to_string(:os.cmd('git rev-parse --abbrev-ref HEAD')), "beta")
 
-config :farmbot_core, FarmbotCore.FirmwareOpenTask, attempt_threshold: 0
-
-config :farmbot_core, FarmbotCore.AssetWorker.FarmbotCore.Asset.FbosConfig,
-  firmware_flash_attempt_threshold: 0
-
-config :logger, handle_otp_reports: false, handle_sasl_reports: false
-config :lager, :error_logger_redirect, false
-config :lager, :error_logger_whitelist, []
-config :lager, :crash_log, false
-config :lager, handlers: [], extra_sinks: []
-
 is_test? = Mix.env() == :test
 
 config :farmbot_ext, FarmbotExt.Time, disable_timeouts: is_test?
@@ -89,7 +78,8 @@ if is_test? do
 
   list = [
     FarmbotExt,
-    FarmbotExt.AMQP.ChannelSupervisor,
+    FarmbotExt.MQTT.Supervisor,
+    FarmbotExt.MQTT.ChannelSupervisor,
     FarmbotExt.API.DirtyWorker.Supervisor,
     FarmbotExt.API.EagerLoader.Supervisor,
     FarmbotExt.Bootstrap.Supervisor

@@ -5,6 +5,7 @@ defmodule FarmbotOS.Lua.Ext.Firmware do
   @axis ["x", "y", "z"]
 
   alias FarmbotCeleryScript.SysCalls
+  alias FarmbotCore.Firmware.Command
 
   def calibrate([axis], lua) when axis in @axis do
     case SysCalls.calibrate(axis) do
@@ -197,13 +198,32 @@ defmodule FarmbotOS.Lua.Ext.Firmware do
         _ -> 0
       end
 
-    case FarmbotFirmware.request({:pin_read, [p: pin, m: m]}) do
-      {:ok, {_, {:report_pin_value, [p: _, v: v]}}} -> {[v], lua}
+    case Command.read_pin(pin, m) do
+      {:ok, v} -> {[v], lua}
       {:error, reason} -> {[nil, reason], lua}
     end
   end
 
   def read_pin([pin], lua), do: read_pin([pin, "digital"], lua)
+
+  @options ["input", "input_pullup", "output"]
+
+  def set_pin_io_mode([pin, mode], lua) when mode in @options do
+    result = SysCalls.set_pin_io_mode(pin, mode)
+
+    case result do
+      :ok ->
+        {[true, nil], lua}
+
+      other ->
+        {[false, inspect(other)], lua}
+    end
+  end
+
+  def set_pin_io_mode([_pin, _mode], lua) do
+    error = "Expected pin mode to be one of: #{inspect(@options)}"
+    {[false, error], lua}
+  end
 
   defp do_find_home(axes, lua, callback) do
     axes

@@ -3,6 +3,7 @@ defmodule FarmbotCore.Logger do
   Log messages to Farmot endpoints.
   """
 
+  require Logger
   alias FarmbotCore.{Log, Logger.Repo}
   import Ecto.Query
   @log_types [:info, :debug, :busy, :warn, :success, :error, :fun, :assertion]
@@ -56,14 +57,16 @@ defmodule FarmbotCore.Logger do
     end
   end
 
-  def insert_log!(params) do
+  def insert_log!(%{ message: _, level: _, verbosity: _ } = input) do
+    params = input |> Map.delete(:__meta__) |> Map.delete(:__struct__)
     changeset = Log.changeset(%Log{}, params)
 
     try do
       maybe_truncate_logs!()
       message = Ecto.Changeset.get_field(changeset, :message)
 
-      case Repo.get_by(Log, message: message) do
+      all = Repo.all(from l in Log, where: l.message == ^message, limit: 1)
+      case Enum.at(all, 0) do
         nil ->
           Repo.insert!(changeset)
 
@@ -82,6 +85,10 @@ defmodule FarmbotCore.Logger do
         IO.warn("Error inserting log: #{kind} #{inspect(err)}", __STACKTRACE__)
         Ecto.Changeset.apply_changes(changeset)
     end
+  end
+
+  def insert_log!(other) do
+    Logger.error("Can't decode log: #{inspect(other)}")
   end
 
   @doc "Gets a log by it's id, deletes it."
@@ -126,7 +133,23 @@ defmodule FarmbotCore.Logger do
   @doc false
   def dispatch_log(params) do
     log = insert_log!(params)
+    maybe_espeak(params)
     FarmbotCore.LogExecutor.execute(log)
+  end
+
+  defp maybe_espeak(%{message: msg, meta: %{channels: c}}) when is_list(c) do
+    espeak? = Enum.member?(c, :espeak) && System.find_executable("espeak")
+    if espeak?, do: do_espeak(msg)
+  end
+
+  defp maybe_espeak(_), do: nil
+
+  def do_espeak(message) do
+    speech = message
+      |> String.trim()
+      |> String.slice(1..400)
+      |> inspect()
+    :os.cmd('espeak #{speech} --stdout | aplay')
   end
 
   @doc "Helper function for deciding if a message should be logged or not."

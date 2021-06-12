@@ -9,8 +9,7 @@ config :vintage_net,
   regulatory_domain: "00",
   persistence: VintageNet.Persistence.Null,
   config: [
-    {"wlan0", %{type: VintageNet.Technology.Null}},
-    {"usb0", %{type: VintageNetDirect}}
+    {"wlan0", %{type: VintageNet.Technology.Null}}
   ]
 
 config :mdns_lite,
@@ -88,7 +87,6 @@ config :farmbot, FarmbotOS.Platform.Supervisor,
   platform_children: [
     FarmbotOS.Platform.Target.Network.Supervisor,
     FarmbotOS.Platform.Target.SSHConsole,
-    FarmbotOS.Platform.Target.Uevent.Supervisor,
     FarmbotOS.Platform.Target.InfoWorker.Supervisor
   ]
 
@@ -97,11 +95,6 @@ config :farmbot, FarmbotOS.Configurator,
 
 config :farmbot, FarmbotOS.System,
   system_tasks: FarmbotOS.Platform.Target.SystemTasks
-
-config :farmbot_core, FarmbotCore.FirmwareOpenTask, attempt_threshold: 5_000_000
-
-config :farmbot_core, FarmbotCore.AssetWorker.FarmbotCore.Asset.FbosConfig,
-  firmware_flash_attempt_threshold: :infinity
 
 config :logger,
   backends: [RingLogger],

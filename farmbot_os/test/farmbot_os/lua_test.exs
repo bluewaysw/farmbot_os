@@ -2,6 +2,7 @@ defmodule FarmbotOS.LuaTest do
   use ExUnit.Case
   use Mimic
   setup :verify_on_exit!
+  alias FarmbotCore.Firmware.Command
   alias FarmbotOS.Lua
 
   alias FarmbotOS.Lua.Ext.{
@@ -12,13 +13,14 @@ defmodule FarmbotOS.LuaTest do
 
   @tag :capture_log
   test "evaluates Lua" do
-    assert Lua.eval_assertion("Returns 'true'", "true")
-    {:error, message1} = Lua.eval_assertion("Returns 'true'", "-1")
+    val1 = Lua.perform_lua("true", [], "Returns 'true'")
+    assert {:ok, [true]} == val1
 
-    assert message1 == "bad return value from expression evaluation"
+    val2 = Lua.perform_lua("-1", [], "Returns -1")
+    assert {:ok, [-1]} == val2
 
-    {:error, error} = Lua.eval_assertion("random error", "(1/0)")
-    assert error == :badarith
+    val3 = Lua.perform_lua("(1/0)", [], "random error")
+    assert {:error, :badarith} == val3
   end
 
   test "assertion logs" do
@@ -40,7 +42,7 @@ defmodule FarmbotOS.LuaTest do
     "firmware_version()",
     "get_device(\"name\")",
     "get_fbos_config().os_auto_update",
-    "get_fbos_config(\"disable_factory_reset\")",
+    "get_fbos_config(\"os_auto_update\")",
     "get_firmware_config().encoder_enabled_x",
     "get_firmware_config(\"encoder_enabled_z\")",
     "go_to_home(\"all\")",
@@ -61,7 +63,7 @@ defmodule FarmbotOS.LuaTest do
     "send_message(\"info\", 23, {\"toast\"})",
     "status = read_status()",
     "update_device({name = \"Test Farmbot\"})",
-    "update_fbos_config({disable_factory_reset = true, os_auto_update = false})",
+    "update_fbos_config({os_auto_update = false})",
     "update_firmware_config({encoder_enabled_z = 1.0})",
     "variable().x",
     "variable(\"parent\").x",
@@ -85,6 +87,9 @@ defmodule FarmbotOS.LuaTest do
                                                    lua ->
       {[], lua}
     end)
+
+    expect(Command, :move_abs, 1, fn _ -> {:ok, nil} end)
+    expect(Command, :read_pin, 1, fn _, _ -> {:ok, 1} end)
 
     expect(Firmware, :move_absolute, 4, fn _vec_or_xyz, lua ->
       {[55.22], lua}
@@ -132,10 +137,11 @@ defmodule FarmbotOS.LuaTest do
         {:ok, _} ->
           nil
 
-        {:error, expl} ->
-          {a, b, _c} = expl
-          IO.inspect({a, b}, label: "== Result")
-          raise "NO"
+        error ->
+          IO.puts("===== A LUA EXAMPLE IS BROKE:")
+          IO.puts(lua)
+          IO.inspect(error, label: "=== This is the error")
+          raise "NO!: #{inspect(error)}"
       end
     end)
   end

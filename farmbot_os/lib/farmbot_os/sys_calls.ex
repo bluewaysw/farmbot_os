@@ -8,31 +8,40 @@ defmodule FarmbotOS.SysCalls do
   require Logger
 
   alias FarmbotCeleryScript.AST
-  alias FarmbotFirmware
+  alias FarmbotCore.Asset
+  alias FarmbotCore.BotState
+  alias FarmbotCore.Leds
+  alias FarmbotExt.API
+  alias FarmbotOS.Lua
 
   alias FarmbotCore.Asset.{
     BoxLed,
-    Private
+    Private,
+    Sync
+  }
+
+  alias FarmbotCore.Firmware.{
+    Command,
+    UARTCore
+  }
+
+  alias FarmbotExt.API.{
+    Reconciler,
+    SyncGroup
   }
 
   alias FarmbotOS.SysCalls.{
     ChangeOwnership,
     CheckUpdate,
-    Farmware,
     FactoryReset,
-    FlashFirmware,
-    SendMessage,
-    SetPinIOMode,
-    PinControl,
-    ResourceUpdate,
+    Farmware,
     Movement,
-    PointLookup
+    PinControl,
+    PointLookup,
+    ResourceUpdate,
+    SendMessage,
+    SetPinIOMode
   }
-
-  alias FarmbotOS.Lua
-
-  alias FarmbotCore.{Asset, Asset.Private, Asset.Sync, BotState, Leds}
-  alias FarmbotExt.{API, API.SyncGroup, API.Reconciler}
 
   @behaviour FarmbotCeleryScript.SysCalls
 
@@ -46,7 +55,7 @@ defmodule FarmbotOS.SysCalls do
   defdelegate update_farmware(name), to: Farmware
 
   @impl true
-  defdelegate flash_firmware(package), to: FlashFirmware
+  defdelegate flash_firmware(package), to: UARTCore
 
   @impl true
   defdelegate change_ownership(email, secret, server), to: ChangeOwnership
@@ -55,7 +64,7 @@ defmodule FarmbotOS.SysCalls do
   defdelegate check_update(), to: CheckUpdate
 
   @impl true
-  defdelegate read_status(), to: FarmbotExt.AMQP.BotStateChannel
+  defdelegate read_status(), to: FarmbotExt.MQTT.BotStateHandler
 
   @impl true
   defdelegate factory_reset(package), to: FactoryReset
@@ -64,13 +73,7 @@ defmodule FarmbotOS.SysCalls do
   defdelegate set_pin_io_mode(pin, mode), to: SetPinIOMode
 
   @impl true
-  defdelegate eval_assertion(comment, expression), to: Lua
-
-  @impl true
-  defdelegate raw_lua_eval(expression), to: Lua
-
-  @impl true
-  defdelegate raw_lua_eval(expression, extra_vm_args), to: Lua
+  defdelegate perform_lua(expression, extra_vars, comment), to: Lua
 
   defdelegate log_assertion(passed?, type, message), to: Lua
 
@@ -177,20 +180,20 @@ defmodule FarmbotOS.SysCalls do
 
   @impl true
   def reboot do
-    FarmbotOS.System.reboot("Reboot requested by Sequence or frontend")
+    FarmbotOS.System.reboot("Rebooting...")
     :ok
   end
 
   @impl true
   def power_off do
-    FarmbotOS.System.shutdown("Shut down requested by Sequence or frontend")
+    FarmbotOS.System.shutdown("Shutting down...")
     :ok
   end
 
   @impl true
   def firmware_reboot do
-    FarmbotCore.Logger.info(1, "Restarting firmware...")
-    GenServer.stop(FarmbotFirmware, :reboot)
+    FarmbotCore.Firmware.UARTCore.restart_firmware()
+    :ok
   end
 
   @impl true
@@ -209,14 +212,17 @@ defmodule FarmbotOS.SysCalls do
 
   @impl true
   def emergency_lock do
-    _ = FarmbotFirmware.command({:command_emergency_lock, []})
+    Command.lock()
     FarmbotCore.Logger.error(1, "E-stopped")
+    FarmbotCore.FirmwareEstopTimer.start_timer()
+    Leds.red(:off)
+    Leds.yellow(:slow_blink)
     :ok
   end
 
   @impl true
   def emergency_unlock do
-    _ = FarmbotFirmware.command({:command_emergency_unlock, []})
+    Command.unlock()
     FarmbotCore.Logger.busy(1, "Unlocked")
     :ok
   end
@@ -283,6 +289,7 @@ defmodule FarmbotOS.SysCalls do
       FarmbotCore.Logger.success(3, "Synced")
       :ok = BotState.set_sync_status("synced")
       _ = Leds.green(:solid)
+
       :ok
     else
       error ->

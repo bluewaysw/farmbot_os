@@ -1,6 +1,6 @@
 defimpl FarmbotCore.AssetWorker, for: FarmbotCore.Asset.FarmwareInstallation do
   use GenServer
-  require FarmbotCore.Logger
+  require Logger
 
   alias FarmbotCore.{Asset.Repo, BotState, JSON}
   alias FarmbotCore.Asset.FarmwareInstallation, as: FWI
@@ -25,13 +25,10 @@ defimpl FarmbotCore.AssetWorker, for: FarmbotCore.Asset.FarmwareInstallation do
   end
 
   def handle_cast(:update, state) do
-    FarmbotCore.Logger.debug(3, "Will attempt Farmware update")
     {:noreply, state, 0}
   end
 
   def handle_info(:timeout, %{fwi: %{manifest: nil} = fwi} = state) do
-    FarmbotCore.Logger.busy(3, "Installing dependencies... ([source URL](#{fwi.url}))")
-
     with {:ok, %{} = manifest} <- get_manifest_json(fwi),
          %{valid?: true} = changeset <- FWI.changeset(fwi, %{manifest: manifest}),
          {:ok, %FWI{} = updated} <- Repo.update(changeset),
@@ -39,7 +36,6 @@ defimpl FarmbotCore.AssetWorker, for: FarmbotCore.Asset.FarmwareInstallation do
          :ok <- install_zip(updated, zip_binary),
          :ok <- install_farmware_tools(updated),
          :ok <- write_manifest(updated) do
-      FarmbotCore.Logger.success(1, "Installed dependency: #{updated.manifest.package}")
       # TODO(Connor) -> No reason to keep this process alive?
       BotState.report_farmware_installed(updated.manifest.package, Manifest.view(updated.manifest))
       {:noreply, %{state | backoff: 0}}
@@ -121,8 +117,6 @@ defimpl FarmbotCore.AssetWorker, for: FarmbotCore.Asset.FarmwareInstallation do
   end
 
   def get_manifest_json(%FWI{url: "file://" <> path}) do
-    FarmbotCore.Logger.debug(1, "Using local directory for Farmware manifest")
-
     case File.read(Path.join(Path.expand(path), @manifest_name)) do
       {:ok, data} -> JSON.decode(data)
       err -> err
@@ -144,7 +138,7 @@ defimpl FarmbotCore.AssetWorker, for: FarmbotCore.Asset.FarmwareInstallation do
   def get_zip(%FWI{manifest: %{zip: url}}), do: get_zip(url)
 
   def get_zip("file://" <> path) do
-    FarmbotCore.Logger.debug(1, "Using local directory for Farmware zip")
+    Logger.debug(1, "Using local directory for Farmware zip")
 
     with {:ok, files} <- File.ls(path),
          file_list <-
@@ -255,18 +249,18 @@ defimpl FarmbotCore.AssetWorker, for: FarmbotCore.Asset.FarmwareInstallation do
   end
 
   defp error_log(%FWI{manifest: %{package: package}}, msg) do
-    FarmbotCore.Logger.error(3, "Farmware #{package} " <> msg)
+    Logger.error("Farmware #{package} " <> msg)
   end
 
   defp error_log(%FWI{}, msg) do
-    FarmbotCore.Logger.error(3, "Farmware " <> msg)
+    Logger.error("Farmware " <> msg)
   end
 
   defp success_log(%FWI{manifest: %{package: package}}, msg) do
-    FarmbotCore.Logger.success(3, "Farmware #{package} " <> msg)
+    Logger.info("Farmware #{package} " <> msg)
   end
 
   defp success_log(%FWI{}, msg) do
-    FarmbotCore.Logger.success(3, "Farmware " <> msg)
+    Logger.info("Farmware " <> msg)
   end
 end
